@@ -107,7 +107,7 @@ standard_plots_log = '''
         # key = c(1,1),
         ref = TRUE)
 
-    qqmath(~ {0}, df,
+    qqmath(~ signedlog({0}), df,
         groups = {1},
         aspect = "fill",
         f.value = ppoints(100),
@@ -124,80 +124,6 @@ standard_plots_log = '''
     '''.replace('    ','')
 
 
-main_loop ='''
-    ```{r, echo=FALSE}
-
-    for(i in 161:190){
-
-      if(sum(is.na(df[,paste('Var',i,sep='')])) == dim(df)[1]) next
-      vname <- paste('Var',i,sep='')
-      print(vname)
-      print(basicStats(df[,vname]))
-      p1 <- densityplot(df[,vname],
-                        groups = df$churn, plot.points = FALSE,
-                        main = 'churn',
-                        scales=list(y=list(at=NULL)),
-                        ylab = NULL,
-                        xlab = vname)
-
-      p2 <- densityplot(df[,vname],
-                        groups = df$appetency, plot.points = FALSE,
-                        main = 'appetency',
-                        scales=list(y=list(at=NULL)),
-                        ylab = NULL,
-                        xlab = vname)
-
-      p3 <- densityplot(df[,vname],
-                        groups = df$upsell, plot.points = FALSE,
-                        main = 'upsell',
-                        scales=list(y=list(at=NULL)),
-                        ylab = NULL,
-                        xlab = vname)
-
-      grid.arrange(p1, p2, p3, ncol=3)
-
-      df[,paste(vname,'_missing',sep='')] <- is.na(df[,vname])
-      #fill missing values with zeros
-      df[is.na(df[,vname]),vname] <- 0
-
-      set.seed(123)
-      smp_size <- floor(0.75 * nrow(df))
-      train_ind <- sample(seq_len(nrow(df)), size = smp_size)
-      # split the data
-      train <- df[train_ind, ]
-      test <- df[-train_ind, ]
-
-      for(j in c('churn', 'appetency', 'upsell')){
-      print(sprintf('modeling for %s', j))
-      logistic_reg <- eval(
-        parse(
-          text = sprintf(
-            "glm(%s ~ poly(%s, 3) + %s_missing, data = train, family = 'binomial')",
-            j, vname, vname)
-        )
-      )
-      print(summary(logistic_reg))
-      yhat <- predict(logistic_reg, test, response = 'prob')
-      pred <- prediction(yhat, test[,j])
-      perf <- performance(pred, measure = "tpr", x.measure = "fpr")
-      # plot(perf, col=rainbow(10), main = vname)
-      print(sprintf('AUC for %s:', vname))
-      print(attributes(performance(pred, 'auc'))$y.values[[1]])
-      print('--------------------------')
-
-      }
-
-      print('=====================================================================')
-
-    }
-    ```
-
-    ```{r}
-    for(i in 191:200){
-
-    }
-    ```
-    '''
 
 rmd.write(read_data)
 
