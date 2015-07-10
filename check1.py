@@ -1,15 +1,15 @@
-# import os
+import os
 import csv
 
 import pandas as pd
 
-fp = 'C:/Users/Jay/Documents/Northwestern/predict_454/team_project/'
+fp = 'C:/Users/Jay/Documents/Northwestern/predict_454/'
 
 
 target_vars = ['churn','upsell', 'appetency']
 
 
-rmd = open(fp+'checkpoint1.rmd', 'wb')
+rmd = open(fp+'team_project/checkpoint1.rmd', 'wb')
 
 
 read_data = '''
@@ -29,6 +29,7 @@ read_data = '''
     library(ROCR)
     library(fBasics)
     library(e1071)
+    library(knitr)
 
     # set document width
     options(width = 10)
@@ -55,18 +56,13 @@ read_data = '''
     signedlog <- function(x) {
      sign(x)*log(abs(x)+1)
      }
-    ```
-    '''.replace('    ','')
 
+    summary_tables <- list()
 
-density_plot = '''
-    ```{0}
-    densityplot(df${1},
-              groups = df$churn, plot.points = FALSE,
-              main = 'churn',
-              scales=list(y=list(at=NULL)),
-              ylab = 'Densisty',
-              xlab = '{1}')
+    # for(i in seq(length(names(df)))){
+    #   summary_tables[[i]] <- basicStats(df[, names(df)[i]])
+    #   names(summary_tables[[i]]) <- names(df)[i]
+    # }
     ```
     '''.replace('    ','')
 
@@ -105,7 +101,8 @@ standard_plots_log = '''
         plot.points = FALSE,
         auto.key = list(corner = c(1,1)),
         # key = c(1,1),
-        ref = TRUE)
+        ref = TRUE,
+        xlab = "signedlog {0}")
 
     qqmath(~ signedlog({0}), df,
         groups = {1},
@@ -113,31 +110,41 @@ standard_plots_log = '''
         f.value = ppoints(100),
         auto.key = list(corner = c(0,1)),
         xlab = "Standard Normal Quatiles",
-        ylab = "Average {0}")
+        ylab = "Average signedlog {0}")
 
     bwplot(factor({1}) ~ signedlog({0}),
         groups = {1},
         data = df,
-        xlab = "{0}")
+        xlab = "signedlog {0}")
 
     ```
     '''.replace('    ','')
 
 
-
 rmd.write(read_data)
 
-with open(fp + 'interesting_vars.txt') as good_vars:
+with open(fp + 'team_project/interesting_vars.txt') as good_vars:
     vlist = csv.reader(good_vars)
     vlist = [r[0] for r in vlist]
 
-vlist = ['Var'+str(x) for x in xrange(1,191)]
+
 
 df = pd.read_csv(
-        fp.replace('team_project/', 'KDD_Cup_2009/orange_small_train.data'),
+        fp + 'KDD_Cup_2009/orange_small_train.data',
         sep = '\t', na_values = '')
 
+comment_files = os.listdir(fp +  'comments/')
+
+comments = [pd.read_csv(fp + 'comments/' + x) for x in comment_files]
+
+comments_df = pd.concat(comments)
+comments_df.loc[:,'Response'] = comments_df['Response'].str.lower()
+comments_df = comments_df.set_index(['Variable', 'Response'])
+
+
 print df.fillna(0).values.min()
+
+vlist = ['Var'+str(x) for x in xrange(120,130)]
 
 for v in vlist:
     if pd.isnull(df[v]).sum() == len(df):
@@ -150,9 +157,17 @@ for v in vlist:
         for t in target_vars:
             rmd.write('\n##{0} signed-log({1})'.format(t.capitalize(), v))
             rmd.write(standard_plots_log.format(v, t))
+            if v in comments_df.index:
+                if t in comments_df.ix[v].index:
+                    rmd.write(comments_df.ix[v].ix[t]['Comments'])
+                    rmd.write('\n \n')
     else:
         for t in target_vars:
             rmd.write('\n##{0} {1}'.format(t.capitalize(), v))
             rmd.write(standard_plots.format(v, t))
+            if v in comments_df.index:
+                if t in comments_df.ix[v].index:
+                    rmd.write(comments_df.ix[v].ix[t]['Comments'])
+                    rmd.write('\n \n')
 
 rmd.close()
