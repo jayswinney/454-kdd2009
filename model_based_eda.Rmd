@@ -5,7 +5,9 @@ date: "July 10, 2015"
 output: html_document
 ---
 
-```{r}
+# DONT FORGET TO REMOVE ALL USES OF THE TINY DATA!!!!!!!!!!!!
+
+```{r, message=FALSE, warning=FALSE, echo = FALSE}
 library(lattice)
 library(plyr)
 library(dplyr)
@@ -13,10 +15,10 @@ library(tidyr)
 library(grid)
 library(gridExtra)
 library(ROCR)
-library(fBasics)
 library(e1071)
 library(knitr)
-library(class)
+library(ggplot2)
+
 
 # set document width
 # read in the data to R
@@ -33,6 +35,11 @@ upsell_ <- read.csv('orange_small_train_upselling.labels', header = FALSE)
 churn_[churn_$V1 < 0,] <- 0
 appetency_[appetency_$V1 < 0,] <- 0
 upsell_[upsell_$V1 < 0,] <- 0
+```
+## Imputing Missing Data
+
+Our strategy to impute missing data is to replace missing numeric values with a 0 and the create a boolean variable that indicates missingness. For categorical variables, all classes that represent less than 1% of the total observations were grouped into an "other" categroy, then a seperate missing class was created.
+```{r, message=FALSE, warning=FALSE} 
 
 # impute mising data with zeros and "missing"
 # also creates missing variable column
@@ -44,27 +51,34 @@ for (i in names(df)){
     df[,paste(i,'_missing',sep='')] <- as.integer(is.na(df[,i]))
     df[is.na(df[,i]),i] <- 0
   }else{
-    levels(df[,i])[xtabs(~df[,i])/dim(df)[1] < 0.01] <- 'other'
+    levels(df[,i])[xtabs(~df[,i])/dim(df)[1] < 0.015] <- 'other'
     levels(df[,i]) <- append(levels(df[,i]), 'missing')
     df[is.na(df[,i]), i] <- 'missing'
   }
 }
+```
 
-
+```{r, message=FALSE, warning=FALSE, echo = FALSE}
 # add the target variables to the data frame
 df$churn <- churn_$V1
 df$appetency <- appetency_$V1
 df$upsell <- upsell_$V1
+```
 
 
-
+Create testing and training data sets as well as a matrix form of the data that is required by some of the classfiers used in this analysis.
+```{r, message=FALSE, warning=FALSE}
 # get the index for training/testing data
 set.seed(123)
 smp_size <- floor(0.75 * nrow(df))
 train_ind <- sample(seq_len(nrow(df)), size = smp_size)
+# making a "tiny" data set so I cn quickly test r markdown and graphical paramters
+# this will be removed in the submitted version
+tiny_ind <- sample(seq_len(nrow(df)), size = floor(0.01 * nrow(df)))
 # split the data
 train <- df[train_ind, ]
 test <- df[-train_ind, ]
+tiny <- df[tiny_ind, ]
 
 df_mat <- select(df, -churn, -appetency, -upsell)
 
@@ -78,29 +92,111 @@ for (i in names(df_mat)){
 }
 
 df_mat <- data.matrix(df_mat)
-
 ```
 
 
+## Logistic Regression with Elastic-Net Penalty
 
-```{r}
+http://www.stanford.edu/~hastie/glmnet/glmnet_alpha.html
+```{r, fig.align='center', message=FALSE, warning=FALSE}
 library(glmnet)
 #logistic regression with regularization
-lreg <- glmnet(df_mat[train_ind,], factor(train$churn), family = "binomial")
+lreg <- glmnet(df_mat[tiny_ind,], factor(tiny$churn), family = "binomial")
 
 # regularized logistic regression with cross validation
 # this takes a while, try using nfolds < 10 to reduce time
-lreg.cv <- cv.glmnet(df_mat[train_ind,], factor(train$churn), family = "binomial")
+lreg.cv <- cv.glmnet(df_mat[tiny_ind,], factor(tiny$churn), family = "binomial",
+                     nfolds = 3)
 # view the bionmial deviance (log loss) of differnt values of lambda
 plot(lreg.cv)
 ```
 
 
+```{r kable, message=FALSE, warning=FALSE, results= 'asis', echo=FALSE}
+cv_coefs <- data.frame(coeficient = coef(lreg.cv)[abs(coef(lreg.cv)) > 1e-10])
+row.names(cv_coefs) <- row.names(coef(lreg.cv))[abs(as.vector(coef(lreg.cv))) > 1e-10]
+kable(cv_coefs, caption = "Variables Selected by Elastic-Net")
+```
+
+## KNN
+
+```{r, fig.align='center', message=FALSE, warning=FALSE}
+library(FNN)
+
+auc_vec <- rep(0, 20)
+
+for(i in 1:20){
+  #print(sprintf('trying k = %d', i))
+  # yhat <- knn(df_mat[train_ind,], df_mat[-train_ind,],
+  #             cl = factor(train$churn), k = i, prob = TRUE)
+  # pred <- prediction((as.numeric(yhat[1:dim(df_mat[-train_ind,])[1]]) - 1) * attr(yhat,'prob'),
+  #                    factor(test$churn))
+
+  yhat <- knn(df_mat[tiny_ind,], df_mat[tiny_ind,],
+              cl = factor(tiny$churn), k = i, prob = TRUE)
+  pred <- prediction((as.numeric(yhat[1:dim(df_mat[tiny_ind,])[1]]) - 1) * attr(yhat,'prob'),
+                     factor(tiny$churn))
+  perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+  #print(sprintf('AUC: %f',
+  #              attributes(performance(pred, 'auc'))$y.values[[1]]))
+  auc_vec[i] <- attributes(performance(pred, 'auc'))$y.values[[1]]
+}
+
+p <- qplot(y = auc_vec, color = 'AUC') + geom_line() +
+            xlab('k = x') + ylab('AUC') + ggtitle('K-NN')
+p
+```
+This plot shows that when viewed from an AUC stand point, the k-nearest-neighbors algorithm might as well be random guessing for all values of k. What can be deduced from this is that there are probably not many pockets of similar customers that have churned.
 
 
+## Decision Tree
+
+```{r, fig.align='center', message=FALSE, warning=FALSE}
+library(rpart)
+library(rpart.plot)
+
+my_tree <- rpart(factor(churn)~.,
+                 data = select(tiny, -appetency, -upsell),
+                 method = 'class',
+                 control=rpart.control(minsplit=40, minbucket=10, cp=0.001))
+
+rpart.plot(my_tree)
+```
+
+## Random Forset
+
+```{r, fig.align='center', message=FALSE, warning=FALSE}
+library(randomForest)
+
+churn_rf <- randomForest(factor(churn)~.,
+                         data = select(tiny, -appetency, -upsell),
+                         ntree = 10, nodesize = 10, importance = TRUE)
+
+varImpPlot(churn_rf, type = 2)
+```
+
+```{r, fig.align='center', message=FALSE, warning=FALSE}
+yhat <- predict(churn_rf, select(tiny, -appetency, -upsell), type = 'prob')
+
+pred <- prediction(yhat[,2], factor(tiny$churn))
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+plot(perf, col=rainbow(10))
+```
+
+```{r, fig.align='center', message = FALSE}
+pca <- princomp(df_mat)
 
 
+library(ggbiplot)
+
+p <- ggbiplot(pca, groups = factor(df$churn), ellipse = FALSE,
+              var.axes = FALSE) +
+  ggtitle('First 2 Principal Components') +
+  xlim(-3, 3) + ylim(-3, 3) +
+  scale_fill_discrete(name = 'Churn')
+
+p
+```
 
 
-
-
+# DONT FORGET TO REMOVE ALL USES OF THE TINY DATA!!!!!!!!!!!!
