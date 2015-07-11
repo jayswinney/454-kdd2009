@@ -1,0 +1,106 @@
+---
+title: "Model Based EDA"
+author: "Jay Swinney"
+date: "July 10, 2015"
+output: html_document
+---
+
+```{r}
+library(lattice)
+library(plyr)
+library(dplyr)
+library(tidyr)
+library(grid)
+library(gridExtra)
+library(ROCR)
+library(fBasics)
+library(e1071)
+library(knitr)
+library(class)
+
+# set document width
+# read in the data to R
+# I'm using na.stings = '' to replace blanks with na
+# this also helps R read the numerical varaibles as numerical
+setwd('C:/Users/Jay/Documents/Northwestern/predict_454/KDD_Cup_2009/')
+df <- read.csv('orange_small_train.data', header = TRUE,
+               sep = '	', na.strings = '')
+# read the target variables
+churn_ <- read.csv('orange_small_train_churn.labels', header = FALSE)
+appetency_ <- read.csv('orange_small_train_appetency.labels', header = FALSE)
+upsell_ <- read.csv('orange_small_train_upselling.labels', header = FALSE)
+
+churn_[churn_$V1 < 0,] <- 0
+appetency_[appetency_$V1 < 0,] <- 0
+upsell_[upsell_$V1 < 0,] <- 0
+
+# impute mising data with zeros and "missing"
+# also creates missing variable column
+for (i in names(df)){
+  vclass <- class(df[,i])
+  if(vclass == 'logical'){
+    df[,i] <- NULL
+  }else if(vclass %in% c('integer', 'numeric')){
+    df[,paste(i,'_missing',sep='')] <- as.integer(is.na(df[,i]))
+    df[is.na(df[,i]),i] <- 0
+  }else{
+    levels(df[,i])[xtabs(~df[,i])/dim(df)[1] < 0.01] <- 'other'
+    levels(df[,i]) <- append(levels(df[,i]), 'missing')
+    df[is.na(df[,i]), i] <- 'missing'
+  }
+}
+
+
+# add the target variables to the data frame
+df$churn <- churn_$V1
+df$appetency <- appetency_$V1
+df$upsell <- upsell_$V1
+
+
+
+# get the index for training/testing data
+set.seed(123)
+smp_size <- floor(0.75 * nrow(df))
+train_ind <- sample(seq_len(nrow(df)), size = smp_size)
+# split the data
+train <- df[train_ind, ]
+test <- df[-train_ind, ]
+
+df_mat <- select(df, -churn, -appetency, -upsell)
+
+for (i in names(df_mat)){
+  if (class(df_mat[,i]) == 'factor'){
+    for(level in unique(df_mat[,i])){
+      df_mat[sprintf('%s_dummy_%s', i, level)] <- ifelse(df_mat[,i] == level, 1, 0)
+    }
+    df_mat[,i] <- NULL
+  }
+}
+
+df_mat <- data.matrix(df_mat)
+
+```
+
+
+
+```{r}
+library(glmnet)
+#logistic regression with regularization
+lreg <- glmnet(df_mat[train_ind,], factor(train$churn), family = "binomial")
+
+# regularized logistic regression with cross validation
+# this takes a while, try using nfolds < 10 to reduce time
+lreg.cv <- cv.glmnet(df_mat[train_ind,], factor(train$churn), family = "binomial")
+# view the bionmial deviance (log loss) of differnt values of lambda
+plot(lreg.cv)
+```
+
+
+
+
+
+
+
+
+
+
