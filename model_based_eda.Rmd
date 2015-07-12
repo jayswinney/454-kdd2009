@@ -106,39 +106,37 @@ for (i in names(df_mat)){
 df_mat <- data.matrix(df_mat)
 ```
 
+# Churn
+
+The challenge for the KKD cup 2009 consited of predicitng 3 variables from the same data set. This paper will focus on one varaible at a time starting with churn.
 
 ## Logistic Regression with Elastic-Net Penalty
 
-http://www.stanford.edu/~hastie/glmnet/glmnet_alpha.html
-```{r, fig.align='center', message=FALSE, warning=FALSE}
-library(glmnet)
-#logistic regression with regularization
-#lreg <- glmnet(df_mat[train_ind,], factor(train$churn), family = "binomial")
+A useful technique for understanding which variables have predictive power is to apply logistic regression with a regularization term. In this case elastic-net penalty is used to explore the predictive importance of the variables.
 
+http://www.stanford.edu/~hastie/glmnet/glmnet_alpha.html
+```{r lreg_churn, fig.align='center', message=FALSE, warning=FALSE}
+library(glmnet)
 # regularized logistic regression with cross validation
 # this takes a while, try using nfolds < 10 to reduce time
 lreg.cv <- cv.glmnet(df_mat[train_ind,], factor(train$churn), family = "binomial",
                      nfolds = 10, type.measure = 'auc')
-# view the bionmial deviance (log loss) of differnt values of lambda
-plot(lreg.cv)
+# view the Area Under the Curve for different values of lambda.
+plot(lreg.cv, main = 'Cross Validation Curve Logistic Regression')
 ```
-This plot shows that not all the variables are useful for classification. The regularized and cross validated logistic regression selected a model with 
-
-## number of variables goes here
-
-non-zero variables
+This plot shows that not all the variables are useful for classification. Two vertical lines in this plot represent the model with the best performance and the most regularized model within one standard deviation of the top performer. Performance is measured on out of sample data. The regularized and cross validated logistic regression selected a model with 155 non-zero variables
 <br>
 
-The variables selected by the regularized logistic regression are in the table below with their coefficients.
+Some of the variables selected by the regularized logistic regression are in the table below with their coefficients. Variables with a coeficient that is very close to zero were left out for brevity.
 ```{r kable, message=FALSE, warning=FALSE, results= 'asis', echo=FALSE}
-cv_coefs <- data.frame(coeficient = coef(lreg.cv)[abs(coef(lreg.cv)) > 1e-5])
-row.names(cv_coefs) <- row.names(coef(lreg.cv))[abs(as.vector(coef(lreg.cv))) > 1e-5]
+cv_coefs <- data.frame(coeficient = coef(lreg.cv)[abs(coef(lreg.cv)) > 1e-3])
+row.names(cv_coefs) <- row.names(coef(lreg.cv))[abs(as.vector(coef(lreg.cv))) > 1e-3]
 kable(cv_coefs, caption = "Variables Selected by Elastic-Net")
 ```
 
-## KNN
 
-```{r, fig.align='center', message=FALSE, warning=FALSE}
+
+```{r, fig.align='center', message=FALSE, warning=FALSE, echo=FALSE, eval=FALSE}
 library(FNN)
 
 auc_vec <- rep(0, 20)
@@ -163,13 +161,14 @@ for(i in 1:20){
 p <- qplot(y = auc_vec, color = 'AUC') + geom_line() +
             xlab('k = x') + ylab('AUC') + ggtitle('K-NN')
 p
-```
-This plot shows that when viewed from an AUC stand point, the k-nearest-neighbors algorithm might as well be random guessing for all values of k. What can be deduced from this is that there are probably not many pockets of similar customers that have churned.
 
+# This plot shows that when viewed from an AUC stand point, the k-nearest-neighbors algorithm might as well be random guessing for all values of k. What can be deduced from this is that there are probably not many pockets of similar customers that have churned.
+
+```
 
 ## Decision Tree
 
-```{r, fig.align='center', message=FALSE, warning=FALSE}
+```{r dt_churn, fig.align='center', message=FALSE, warning=FALSE}
 library(rpart)
 library(rpart.plot)
 
@@ -180,18 +179,20 @@ my_tree <- rpart(factor(churn)~.,
 
 rpart.plot(my_tree)
 ```
+The results from the decision tree give an indication of how usefull each of the variables are at predicting churn. This tree is fairly shallow, so any of the variables that made it into the tree will most likely show up in other models that give some indication of variable importance. One interesting thig to not about this tree is that variables 126 and 226 both show up twice in the tree, confirming what has been seen from the logistic regression with elasic net penalty and the random forest variable importance in the next section.
 
 ## Random Forest
 
-```{r, fig.align='center', message=FALSE, warning=FALSE}
+```{r rf_churn, fig.align='center', message=FALSE, warning=FALSE}
 library(randomForest)
-
+set.seed(123)
 churn_rf <- randomForest(factor(churn)~.,
                          data = select(train, -appetency, -upsell),
                          ntree = 10, nodesize = 10, importance = TRUE)
 
 varImpPlot(churn_rf, type = 2)
 ```
+With the random forest as with the decision tree and logistic regression Var226 has shown to be an important indicator of churn. Variable 204 also shows up high in the variable importance plot from the random forest and in the single decision tree from the previous section.
 
 ```{r, fig.align='center', message=FALSE, warning=FALSE}
 yhat <- predict(churn_rf, select(test, -appetency, -upsell), type = 'prob')
@@ -201,10 +202,11 @@ perf <- performance(pred, measure = "tpr", x.measure = "fpr")
 print(sprintf('AUC: %d', attributes(performance(pred, 'auc'))$y.values[[1]]))
 plot(perf, col=rainbow(10))
 ```
+The accuracy of the random forest leaves something to be desired, there is clearly more work to do. It is not displayed here, but the random forest fit extreemly well to in-sample data, this indicates that there is more work to be done to combat over-fitting. Options include changing the requirements for leaf and split sizes and trying the random forest with a subset of variables such as the ones selected by regularized logistic regression.
 
 
+```{r, fig.align='center', message=FALSE, warning=FALSE, echo=FALSE, eval=FALSE}
 ## Principal Components
-```{r, fig.align='center', message = FALSE}
 pca <- princomp(df_mat)
 
 
@@ -219,5 +221,52 @@ p <- ggbiplot(pca, groups = factor(df$churn), ellipse = FALSE,
 p
 ```
 
+# Appetency
+The next response variable to discuss is appetency. As defined in the task description on the KDD website, appetency is the propensity to buy a service or a product.
 
-# DONT FORGET TO REMOVE ALL USES OF THE TINY DATA!!!!!!!!!!!!
+## Logistic Regression with Elastic-Net Penalty
+```{r lreg_app, fig.align='center', message=FALSE, warning=FALSE}
+lreg.cv <- cv.glmnet(df_mat[train_ind,], factor(train$appetency), family = "binomial",
+                     nfolds = 8, type.measure = 'auc')
+# view the bionmial deviance (log loss) of differnt values of lambda
+plot(lreg.cv, main = 'Cross Validation Curve', sub = 'Logistic Regression')
+```
+This 
+```{r lreg_app, fig.align='center', message=FALSE, warning=FALSE}
+yhat <- predict(lreg.cv, df_mat[-train_ind,], type = 'response')
+
+pred <- prediction(yhat, factor(test$appetency))
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+print(sprintf('AUC for Regularized Logistic Regression: %f',
+              attributes(performance(pred, 'auc'))$y.values[[1]]))
+plot(perf, col=rainbow(10), main = 'ROC Curve Logistic Regression')
+```
+
+
+```{r kable, message=FALSE, warning=FALSE, results= 'asis', echo=FALSE}
+cv_coefs <- data.frame(coeficient = coef(lreg.cv)[abs(coef(lreg.cv)) > 1e-3])
+row.names(cv_coefs) <- row.names(coef(lreg.cv))[abs(as.vector(coef(lreg.cv))) > 1e-3]
+kable(cv_coefs, caption = "Variables Selected by Elastic-Net")
+```
+
+## Decision Tree
+
+```{r dt_churn, fig.align='center', message=FALSE, warning=FALSE}
+my_tree <- rpart(factor(appetency)~.,
+                 data = select(train, -churn, -upsell),
+                 method = 'class',
+                 control=rpart.control(minsplit=40, minbucket=10, cp=0.001))
+
+rpart.plot(my_tree)
+my_tree
+```
+
+The Decision Tree classifier selected 7 variables as the most predictive variables.  The 7 variables are listed below with the highest predictive value listed first.<br>
+The following configuration: minsplit=40 to set the minimum number of observations per node, minbucket=10 to set the minimum number of total nodes, and cp=0.001 to set the cost complexity factor with a split that must decrease the overall lack of fit by a factor of 0.001.<br>
+1.	Var126 <br>
+2.	Var218 <br>
+3.	Var204 <br>
+4.	Var38 <br>
+5.	Var206 <br>
+6.	Var223 <br>
+7.	Var81 <br>
