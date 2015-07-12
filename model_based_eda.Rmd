@@ -26,7 +26,7 @@ library(ggplot2)
 # this also helps R read the numerical varaibles as numerical
 setwd('C:/Users/Jay/Documents/Northwestern/predict_454/KDD_Cup_2009/')
 df <- read.csv('orange_small_train.data', header = TRUE,
-               sep = '	', na.strings = '')
+               sep = '\t', na.strings = '')
 # read the target variables
 churn_ <- read.csv('orange_small_train_churn.labels', header = FALSE)
 appetency_ <- read.csv('orange_small_train_appetency.labels', header = FALSE)
@@ -38,7 +38,7 @@ upsell_[upsell_$V1 < 0,] <- 0
 ```
 ## Imputing Missing Data
 
-Our strategy to impute missing data is to replace missing numeric values with a 0 and the create a boolean variable that indicates missingness. For categorical variables, all classes that represent less than 1% of the total observations were grouped into an "other" categroy, then a seperate missing class was created.
+Our strategy to impute missing data is to replace missing numeric values with a 0 and the create a boolean variable that indicates missingness. For categorical variables, all classes that represent less than 1% of the total observations were grouped into an "other" category, then a separate missing class was created.
 ```{r, message=FALSE, warning=FALSE}
 
 # impute mising data with zeros and "missing"
@@ -46,12 +46,20 @@ Our strategy to impute missing data is to replace missing numeric values with a 
 for (i in names(df)){
   vclass <- class(df[,i])
   if(vclass == 'logical'){
+    # some of the variables are 100% missing, they are the only logical class vars
+    # so we can safely remove all logical class vars
     df[,i] <- NULL
   }else if(vclass %in% c('integer', 'numeric')){
+    #first check that there are missing variables
+    if(sum(is.na(df[,i])) == 0) next
+    # create a missing variable column
     df[,paste(i,'_missing',sep='')] <- as.integer(is.na(df[,i]))
+    # fill missing variables with 0
     df[is.na(df[,i]),i] <- 0
   }else{
+    # gather infrequent levels into 'other'
     levels(df[,i])[xtabs(~df[,i])/dim(df)[1] < 0.015] <- 'other'
+    # replace NA with 'missing'
     levels(df[,i]) <- append(levels(df[,i]), 'missing')
     df[is.na(df[,i]), i] <- 'missing'
   }
@@ -66,7 +74,7 @@ df$upsell <- upsell_$V1
 ```
 
 
-Create testing and training data sets as well as a matrix form of the data that is required by some of the classfiers used in this analysis.
+Create testing and training data sets as well as a matrix form of the data that is required by some of the classifiers used in this analysis.
 ```{r, message=FALSE, warning=FALSE}
 # get the index for training/testing data
 set.seed(123)
@@ -88,6 +96,10 @@ for (i in names(df_mat)){
       df_mat[sprintf('%s_dummy_%s', i, level)] <- ifelse(df_mat[,i] == level, 1, 0)
     }
     df_mat[,i] <- NULL
+  } else {
+    # scale numeric variables
+    # this is important for regularized logistic regression and KNN
+    df_mat[,i] <- scale(df_mat[,i])
   }
 }
 
@@ -101,20 +113,26 @@ http://www.stanford.edu/~hastie/glmnet/glmnet_alpha.html
 ```{r, fig.align='center', message=FALSE, warning=FALSE}
 library(glmnet)
 #logistic regression with regularization
-lreg <- glmnet(df_mat[train_ind,], factor(train$churn), family = "binomial")
+#lreg <- glmnet(df_mat[train_ind,], factor(train$churn), family = "binomial")
 
 # regularized logistic regression with cross validation
 # this takes a while, try using nfolds < 10 to reduce time
 lreg.cv <- cv.glmnet(df_mat[train_ind,], factor(train$churn), family = "binomial",
-                     nfolds = 10)
+                     nfolds = 10, type.measure = 'auc')
 # view the bionmial deviance (log loss) of differnt values of lambda
 plot(lreg.cv)
 ```
+This plot shows that not all the variables are useful for classification. The regularized and cross validated logistic regression selected a model with 
 
+## number of variables goes here
 
+non-zero variables
+<br>
+
+The variables selected by the regularized logistic regression are in the table below with their coefficients.
 ```{r kable, message=FALSE, warning=FALSE, results= 'asis', echo=FALSE}
-cv_coefs <- data.frame(coeficient = coef(lreg.cv)[abs(coef(lreg.cv)) > 1e-10])
-row.names(cv_coefs) <- row.names(coef(lreg.cv))[abs(as.vector(coef(lreg.cv))) > 1e-10]
+cv_coefs <- data.frame(coeficient = coef(lreg.cv)[abs(coef(lreg.cv)) > 1e-5])
+row.names(cv_coefs) <- row.names(coef(lreg.cv))[abs(as.vector(coef(lreg.cv))) > 1e-5]
 kable(cv_coefs, caption = "Variables Selected by Elastic-Net")
 ```
 
@@ -163,7 +181,7 @@ my_tree <- rpart(factor(churn)~.,
 rpart.plot(my_tree)
 ```
 
-## Random Forset
+## Random Forest
 
 ```{r, fig.align='center', message=FALSE, warning=FALSE}
 library(randomForest)
@@ -180,9 +198,12 @@ yhat <- predict(churn_rf, select(test, -appetency, -upsell), type = 'prob')
 
 pred <- prediction(yhat[,2], factor(test$churn))
 perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+print(sprintf('AUC: %d', attributes(performance(pred, 'auc'))$y.values[[1]]))
 plot(perf, col=rainbow(10))
 ```
 
+
+## Principal Components
 ```{r, fig.align='center', message = FALSE}
 pca <- princomp(df_mat)
 
