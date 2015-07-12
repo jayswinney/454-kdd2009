@@ -129,7 +129,7 @@ This plot shows that not all the variables are useful for classification. Two ve
 <br>
 
 Some of the variables selected by the regularized logistic regression are in the table below with their coefficients. Variables with a coefficient that is very close to zero were left out for brevity.
-```{r kable, message=FALSE, warning=FALSE, results= 'asis', echo=FALSE}
+```{r kable_churn, message=FALSE, warning=FALSE, results= 'asis', echo=FALSE}
 cv_coefs <- data.frame(coeficient = coef(lreg.cv)[abs(coef(lreg.cv)) > 1e-3])
 row.names(cv_coefs) <- row.names(coef(lreg.cv))[abs(as.vector(coef(lreg.cv))) > 1e-3]
 kable(cv_coefs, caption = "Variables Selected by Elastic-Net")
@@ -236,7 +236,7 @@ title('Cross Validation Curve Logistic Regression', line =+2.8)
 The results from the logistic regression are very promising and interesting. The AUC peaks above 0.8 which is nice to see, but more interestingly the AUC does not dramatically decline till almost all of the variables are removed from the model. This shows that one or two of the variables are very strong indicators of appetency. <br>
 
 Taking a look at the 3 variables in the highly regularized model (right-most vertical line) shows that Var126 and a certain level of Var218 plus an intercept are very indicative of appetency. This is encouraging because it suggest that predicting appetency will be an easier problem.
-```{r kable, message=FALSE, warning=FALSE, results= 'asis', echo=FALSE}
+```{r kable_app, message=FALSE, warning=FALSE, results= 'asis', echo=FALSE}
 cv_coefs <- data.frame(
   coeficient = coef(lreg.cv, s = 'lambda.1se')[abs(coef(lreg.cv,
                                                         s = 'lambda.1se')) > 1e-3])
@@ -248,7 +248,7 @@ kable(cv_coefs, caption = "Variables Selected by Elastic-Net")
 ```
 
 
-```{r lreg_app, fig.align='center', message=FALSE, warning=FALSE}
+```{r lreg_app_perf, fig.align='center', message=FALSE, warning=FALSE}
 yhat <- predict(lreg.cv, df_mat[-train_ind,], type = 'response')
 
 pred <- prediction(yhat, factor(test$appetency))
@@ -262,7 +262,7 @@ As shown by this ROC curve constructed on out of sample data, the logistic regre
 
 ## Decision Tree
 
-```{r dt_churn, fig.align='center', message=FALSE, warning=FALSE}
+```{r dt_app, fig.align='center', message=FALSE, warning=FALSE}
 my_tree <- rpart(factor(appetency)~.,
                  data = select(train, -churn, -upsell),
                  method = 'class',
@@ -284,7 +284,7 @@ The following configuration: minsplit=40 to set the minimum number of observatio
 
 ## Random Forest
 
-```{r rf_churn, fig.align='center', message=FALSE, warning=FALSE}
+```{r rf_app, fig.align='center', message=FALSE, warning=FALSE}
 appetency_rf <- randomForest(factor(appetency)~.,
                          data = select(train, -churn, -upsell),
                          ntree = 10, nodesize = 10, importance = TRUE)
@@ -294,7 +294,7 @@ varImpPlot(appetency_rf, type = 2, main = 'Variable Importance Appetency')
 An interesting take away from this plot is that the random forest identified variable 226 & 126 as two of the top three most important variables. This echos the output from the logistic regression and further confirms that these are important variables. However it will be shown that the random forest did not perform nearly as well as the regularized logistic regression, this is because the random forest is severely over-fit, it will need significant tuning before it is on par with the regularized logistic regression.
 
 
-```{r rf_churn, fig.align='center', message=FALSE, warning=FALSE}
+```{r rf_app_perf, fig.align='center', message=FALSE, warning=FALSE}
 yhat <- predict(appetency_rf, select(test, -churn, -upsell), type = 'prob')
 
 pred <- prediction(yhat[,2], factor(test$appetency))
@@ -318,7 +318,7 @@ title('Cross Validation Curve Logistic Regression',line =+2.8)
 The results from the regularized logistic regression are both promising and somewhat disappointing at the same time. The plot shows that comparable performance can be achieved by removing all but about 80 variables, but unfortunately the regularization does not appear to yield much in the way of performance gain.
 
 
-```{r lreg_upsell, fig.align='center', message=FALSE, warning=FALSE, echo = FALSE, eval=FALSE}
+```{r lreg_upsell_coefs, fig.align='center', message=FALSE, warning=FALSE, echo = FALSE, eval=FALSE}
 cv_coefs <- data.frame( coeficient = coef(lreg.cv_upsell, s = 'lambda.1se')[
   abs(coef(lreg.cv_upsell, s = 'lambda.1se')) > 1e-3])
 
