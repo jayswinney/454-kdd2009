@@ -122,7 +122,8 @@ library(glmnet)
 lreg.cv <- cv.glmnet(df_mat[train_ind,], factor(train$churn), family = "binomial",
                      nfolds = 10, type.measure = 'auc')
 # view the Area Under the Curve for different values of lambda.
-plot(lreg.cv, main = 'Cross Validation Curve Logistic Regression')
+plot(lreg.cv)
+title('Cross Validation Curve Logistic Regression',line =+2.8)
 ```
 This plot shows that not all the variables are useful for classification. Two vertical lines in this plot represent the model with the best performance and the most regularized model within one standard deviation of the top performer. Performance is measured on out of sample data. The regularized and cross validated logistic regression selected a model with 155 non-zero variables
 <br>
@@ -177,7 +178,7 @@ my_tree <- rpart(factor(churn)~.,
                  method = 'class',
                  control=rpart.control(minsplit=40, minbucket=10, cp=0.001))
 
-rpart.plot(my_tree)
+rpart.plot(my_tree, main = 'Churn Decision Tree')
 ```
 The results from the decision tree give an indication of how useful each of the variables are at predicting churn. This tree is fairly shallow, so any of the variables that made it into the tree will most likely show up in other models that give some indication of variable importance. One interesting thing to not about this tree is that variables 126 and 226 both show up twice in the tree, confirming what has been seen from the logistic regression with elastic net penalty and the random forest variable importance in the next section.
 
@@ -190,7 +191,7 @@ churn_rf <- randomForest(factor(churn)~.,
                          data = select(train, -appetency, -upsell),
                          ntree = 10, nodesize = 10, importance = TRUE)
 
-varImpPlot(churn_rf, type = 2, main = 'Variable Importance')
+varImpPlot(churn_rf, type = 2, main = 'Variable Importance Churn')
 ```
 With the random forest as with the decision tree and logistic regression Var226 has shown to be an important indicator of churn. Variable 204 also shows up high in the variable importance plot from the random forest and in the single decision tree from the previous section.
 
@@ -200,7 +201,7 @@ yhat <- predict(churn_rf, select(test, -appetency, -upsell), type = 'prob')
 pred <- prediction(yhat[,2], factor(test$churn))
 perf <- performance(pred, measure = "tpr", x.measure = "fpr")
 print(sprintf('AUC: %f', attributes(performance(pred, 'auc'))$y.values[[1]]))
-plot(perf, col=rainbow(10))
+plot(perf, col=rainbow(10), main = 'Random Forest ROC Curve')
 ```
 The accuracy of the random forest leaves something to be desired, there is clearly more work to do. It is not displayed here, but the random forest fit extremely well to in-sample data, this indicates that there is more work to be done to combat over-fitting. Options include changing the requirements for leaf and split sizes and trying the random forest with a subset of variables such as the ones selected by regularized logistic regression.
 
@@ -230,6 +231,7 @@ lreg.cv <- cv.glmnet(df_mat[train_ind,], factor(train$appetency), family = "bino
                      nfolds = 8, type.measure = 'auc')
 # view the bionmial deviance (log loss) of differnt values of lambda
 plot(lreg.cv)
+title('Cross Validation Curve Logistic Regression', line =+2.8)
 ```
 The results from the logistic regression are very promising and interesting. The AUC peaks above 0.8 which is nice to see, but more interestingly the AUC does not dramatically decline till almost all of the variables are removed from the model. This shows that one or two of the variables are very strong indicators of appetency. <br>
 
@@ -266,7 +268,7 @@ my_tree <- rpart(factor(appetency)~.,
                  method = 'class',
                  control=rpart.control(minsplit=40, minbucket=10, cp=0.001))
 
-rpart.plot(my_tree)
+rpart.plot(my_tree, main = 'Appetency Decision Tree')
 my_tree
 ```
 
@@ -287,9 +289,9 @@ appetency_rf <- randomForest(factor(appetency)~.,
                          data = select(train, -churn, -upsell),
                          ntree = 10, nodesize = 10, importance = TRUE)
 
-varImpPlot(appetency_rf, type = 2, main = 'Variable Importance')
+varImpPlot(appetency_rf, type = 2, main = 'Variable Importance Appetency')
 ```
-An interesting take away from this plot is that the random forest identified variable 226 & 126 as two of the top three most important variables. This echos the output from the logistic regression and further confirms that these are important variables. However it will be shown that the random forest did not perform nearly as well as the regularized logistic regression, this is because the random forest is severly over-fit, it will need significat tunning before it is on par with the regularized logistic regression.
+An interesting take away from this plot is that the random forest identified variable 226 & 126 as two of the top three most important variables. This echos the output from the logistic regression and further confirms that these are important variables. However it will be shown that the random forest did not perform nearly as well as the regularized logistic regression, this is because the random forest is severely over-fit, it will need significant tuning before it is on par with the regularized logistic regression.
 
 
 ```{r rf_churn, fig.align='center', message=FALSE, warning=FALSE}
@@ -302,27 +304,54 @@ plot(perf, col=rainbow(10))
 ```
 
 
-# Upsell
+# Up-Sell
+The last response variable to analyze is up-sell. As defined in the task description, up-selling can imply selling something additional, or selling something that is more profitable or otherwise preferable for the seller instead of the original sale.
+
+## Logistic Regression with Elastic-Net Penalty
+```{r lreg_upsell, fig.align='center', message=FALSE, warning=FALSE}
+lreg.cv_upsell <- cv.glmnet(df_mat[train_ind,], factor(train$upsell), family = "binomial",
+                     nfolds = 8, type.measure = 'auc')
+# view the bionmial deviance (log loss) of differnt values of lambda
+plot(lreg.cv_upsell)
+title('Cross Validation Curve Logistic Regression',line =+2.8)
+```
+The results from the regularized logistic regression are both promising and somewhat disappointing at the same time. The plot shows that comparable performance can be achieved by removing all but about 80 variables, but unfortunately the regularization does not appear to yield much in the way of performance gain.
+
+
+```{r lreg_upsell, fig.align='center', message=FALSE, warning=FALSE, echo = FALSE, eval=FALSE}
+cv_coefs <- data.frame( coeficient = coef(lreg.cv_upsell, s = 'lambda.1se')[
+  abs(coef(lreg.cv_upsell, s = 'lambda.1se')) > 1e-3])
+
+row.names(cv_coefs) <- row.names(coef(lreg.cv_upsell, s = 'lambda.1se'))[
+  abs(as.vector(coef(lreg.cv_upsell, s = 'lambda.1se'))) > 1e-3]
+```
 
 ## Decision Tree
-```{r dt_churn, fig.align='center', message=FALSE, warning=FALSE}
+```{r dt_upsell, fig.align='center', message=FALSE, warning=FALSE}
 my_tree <- rpart(factor(upsell)~.,
                  data = select(train, -appetency, -churn),
                  method = 'class',
                  control=rpart.control(minsplit=100, minbucket=10, cp=0.001))
 
-rpart.plot(my_tree)
+rpart.plot(my_tree, main = 'Up-Sell Decision Tree')
 ```
 
-A number of control options  were used for rpart() -, namely minsplit to set the minimum number of observations per node , minbucket - minimum number of total nodes , cp - split must decrease the overall lack of fit by a factor of 0.001 (cost complexity factor). It was observed that Var 126 and Var 28 were chosen and always had a high importance.These variables probably have good predictive value for upsell.
+A number of control options  were used for rpart() -, namely minsplit to set the minimum number of observations per node, minbucket - minimum number of total nodes , cp - split must decrease the overall lack of fit by a factor of 0.001 (cost complexity factor). It was observed that Var 126 and Var 28 were chosen and always had a high importance.These variables probably have good predictive value for up-sell.
 
 ```{r, message = FALSE}
 summary(my_tree)
 ```
 
 ## Random Forest
+```{r rf_upsell, fig.align='center', message=FALSE, warning=FALSE}
+upsell_rf <- randomForest(factor(upsell)~.,
+                         data = select(train, -appetency, -churn),
+                         ntree = 10, nodesize = 10, importance = TRUE)
 
+varImpPlot(upsell_rf, type = 2, main = 'Variable Importance Up-Sell')
+```
 
-The Random Forest classifier selects close to 200 predictor variables as having significant predictive value for Upsell. This is a very large number .  We do see that the Meandecrease in Gini Index is highest on including Var 126. This matches with the results from Decision tree that Var 126 has a higher predictor value.
+The Random Forest classifier selects close to 200 predictor variables as having significant predictive value for up-sell. This is a very large number.  We do see that the mean decrease in Gini Index is highest on including Var 126. This matches with the results from Decision tree that Var 126 has a higher predictor value.
 
-
+# Other Analysis
+In addition to the steps listed here, KNN and PCA was used to explore all of the response varaibles without any interesting results. Before any model fitting was done, each predictor variable was examined individually to look for patterns and structure manually. The uni-variate work is not included here becuase it is too space consumptive.
