@@ -2,10 +2,13 @@
 title: "Model Based EDA"
 author: "Udy Akpan, Joe Dion, Sandra Duenas, Manjari Srivastava, Jay Swinney"
 date: "July 10, 2015"
-output: html_document
+output: 
+  html_document: 
+    highlight: tango
+    theme: cerulean
 ---
 
-1. Introduction<br>
+###1. Introduction<br>
 The KDD Cup 2009 CRM problem is a prediction problem attempting to predict account cancellation (churn), account purchase of additional services (appetency), and account willingness to respond favorably to marketing pitches (up-selling).
 <br>
 The prediction of each response (churn, appetency, up selling) is performed separately using classification.
@@ -14,7 +17,8 @@ Given that the predictors are unknown and they are generically labeled, data imp
 <br>
 Naive models were used to perform initial EDA and helped in model specification by determining the best set of variables to be included in the initial models created with only the training data.
 <br>
-2. The Modeling Problem<br>
+
+###2. The Modeling Problem<br>
 The problem requires the prediction of three (3) different response variables, churn, appetency, and up selling. These variables are not multinomial or different values in a categorical variable. These are independent response variables.
 <br>
 The nature of the response variable dictates as to whether an account churns or not, or whether it up-sells or not, or whether it appetences or not calls for a classification approach to the prediction problem.
@@ -144,11 +148,15 @@ title('Cross Validation Curve Logistic Regression',line =+2.8)
 This plot shows that not all the variables are useful for classification. Two vertical lines in this plot represent the model with the best performance and the most regularized model within one standard deviation of the top performer. Performance is measured on out of sample data. The regularized and cross validated logistic regression selected a model with 155 non-zero variables
 <br>
 
-Some of the variables selected by the regularized logistic regression are in the table below with their coefficients. Variables with a coefficient that is very close to zero were left out for brevity.
+Some of the variables selected by the regularized logistic regression are in the table below with their coefficients. Only selected variables are shown for brevity.
 ```{r kable_churn, message=FALSE, warning=FALSE, results= 'asis', echo=FALSE}
-cv_coefs <- data.frame(coeficient = coef(lreg.cv)[abs(coef(lreg.cv)) > 1e-3])
-row.names(cv_coefs) <- row.names(coef(lreg.cv))[abs(as.vector(coef(lreg.cv))) > 1e-3]
-kable(cv_coefs, caption = "Variables Selected by Elastic-Net")
+cv_coefs <- data.table(variable = row.names(coef(lreg.cv))[
+                          abs(as.vector(coef(lreg.cv))) > 1e-5],
+                       coeficient = coef(lreg.cv)[abs(coef(lreg.cv)) > 1e-5])
+
+
+kable(cv_coefs[variable %like% '26'],
+      caption = "Variables Selected by Elastic-Net")
 ```
 
 
@@ -216,8 +224,15 @@ yhat <- predict(churn_rf, select(test, -appetency, -upsell), type = 'prob')
 
 pred <- prediction(yhat[,2], factor(test$churn))
 perf <- performance(pred, measure = "tpr", x.measure = "fpr")
-print(sprintf('AUC: %f', attributes(performance(pred, 'auc'))$y.values[[1]]))
-plot(perf, col=rainbow(10), main = 'Random Forest ROC Curve')
+ggplot(data.frame(TPR = unlist(perf@y.values),
+                       FPR = unlist(perf@x.values)),
+            aes(FPR, TPR)) + geom_line(color = '#3b5b92', size = 1) +
+  xlab('False Positvie Rate') + ylab('True Positive Rate') + 
+  ggtitle('Random Forest ROC Curve') +
+  theme(plot.title = element_text(lineheight=.8, face="bold")) + 
+  annotate("text", x = 0.75, y = 0.20, label = sprintf('AUC: %f',
+  attributes(performance(pred, 'auc'))$y.values[[1]]))
+p
 ```
 The accuracy of the random forest leaves something to be desired, there is clearly more work to do. It is not displayed here, but the random forest fit extremely well to in-sample data, this indicates that there is more work to be done to combat over-fitting. Options include changing the requirements for leaf and split sizes and trying the random forest with a subset of variables such as the ones selected by regularized logistic regression.
 
@@ -269,9 +284,16 @@ yhat <- predict(lreg.cv, df_mat[-train_ind,], type = 'response')
 
 pred <- prediction(yhat, factor(test$appetency))
 perf <- performance(pred, measure = "tpr", x.measure = "fpr")
-print(sprintf('AUC for Regularized Logistic Regression: %f',
-              attributes(performance(pred, 'auc'))$y.values[[1]]))
-plot(perf, col=rainbow(10), main = 'ROC Curve Logistic Regression')
+
+ggplot(data.frame(TPR = unlist(perf@y.values),
+                       FPR = unlist(perf@x.values)),
+            aes(FPR, TPR)) + geom_line(color = '#3b5b92', size = 1) +
+  xlab('False Positvie Rate') + ylab('True Positive Rate') + 
+  ggtitle('Logistic Regression ROC Curve') +
+  theme(plot.title = element_text(lineheight=.8, face="bold")) + 
+  annotate("text", x = 0.75, y = 0.20, label = sprintf('AUC: %f',
+  attributes(performance(pred, 'auc'))$y.values[[1]]))
+p
 ```
 As shown by this ROC curve constructed on out of sample data, the logistic regression performs very well identifying appetency.
 
@@ -315,8 +337,15 @@ yhat <- predict(appetency_rf, select(test, -churn, -upsell), type = 'prob')
 
 pred <- prediction(yhat[,2], factor(test$appetency))
 perf <- performance(pred, measure = "tpr", x.measure = "fpr")
-print(sprintf('AUC: %f', attributes(performance(pred, 'auc'))$y.values[[1]]))
-plot(perf, col=rainbow(10))
+ggplot(data.frame(TPR = unlist(perf@y.values),
+                       FPR = unlist(perf@x.values)),
+            aes(FPR, TPR)) + geom_line(color = '#3b5b92', size = 1) +
+  xlab('False Positvie Rate') + ylab('True Positive Rate') + 
+  ggtitle(' Random Forest ROC Curve') +
+  theme(plot.title = element_text(lineheight=.8, face="bold")) + 
+  annotate("text", x = 0.75, y = 0.20, label = sprintf('AUC: %f',
+  attributes(performance(pred, 'auc'))$y.values[[1]]))
+p
 ```
 
 
