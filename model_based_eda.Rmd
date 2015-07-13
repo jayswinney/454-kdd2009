@@ -1,11 +1,26 @@
 ---
 title: "Model Based EDA"
-author: "Jay Swinney"
+author: "Udy Akpan, Joe Dion, Sandra Duenas, Manjari Srivastava, Jay Swinney"
 date: "July 10, 2015"
 output: html_document
 ---
 
-# DONT FORGET TO REMOVE ALL USES OF THE TINY DATA!!!!!!!!!!!!
+1. Introduction<br>
+The KDD Cup 2009 CRM problem is a prediction problem attempting to predict account cancellation (churn), account purchase of additional services (appetency), and account willingness to respond favorably to marketing pitches (up-selling).
+<br>
+The prediction of each response (churn, appetency, up selling) is performed separately using classification.
+<br>
+Given that the predictors are unknown and they are generically labeled, data imputation of missing values is done by using zero (0) for numeric variables and 'missing' for categorical variables. An indicator variable for fixed or imputed values is set to 1 to identify those observations and variable combination that was imputed.
+<br>
+Naive models were used to perform initial EDA and helped in model specification by determining the best set of variables to be included in the initial models created with only the training data.
+<br>
+2. The Modeling Problem<br>
+The problem requires the prediction of three (3) different response variables, churn, appetency, and up selling. These variables are not multinomial or different values in a categorical variable. These are independent response variables.
+<br>
+The nature of the response variable dictates as to whether an account churns or not, or whether it up-sells or not, or whether it appetences or not calls for a classification approach to the prediction problem.
+<br>
+The data set contain 230 variables of which nothing is known. The variable names are generic. There are many missing values but due to the unknown nature of the data, imputation may be narrowed to the variable itself.
+<br>
 
 ```{r, message=FALSE, warning=FALSE, echo = FALSE}
 library(lattice)
@@ -38,7 +53,8 @@ upsell_[upsell_$V1 < 0,] <- 0
 ```
 ## Imputing Missing Data
 
-Our strategy to impute missing data is to replace missing numeric values with a 0 and the create a boolean variable that indicates missingness. For categorical variables, all classes that represent less than 1% of the total observations were grouped into an "other" category, then a separate missing class was created.
+Our strategy to impute missing data is to replace missing numeric values with a 0 and then create a boolean variable that indicates missingness. For categorical variables, all classes that represent less than 1% of the total observations were grouped into an "other" category, then a separate missing class was created.The categorical variables were imputed with the word 'missing'.  The new missing indicator variables were set to 1 to indicate that the variable was imputed or to 0 to indicate no imputation.
+
 ```{r, message=FALSE, warning=FALSE}
 
 # impute mising data with zeros and "missing"
@@ -173,12 +189,12 @@ p
 library(rpart)
 library(rpart.plot)
 
-my_tree <- rpart(factor(churn)~.,
+churn_tree <- rpart(factor(churn)~.,
                  data = select(train, -appetency, -upsell),
                  method = 'class',
                  control=rpart.control(minsplit=40, minbucket=10, cp=0.001))
 
-rpart.plot(my_tree, main = 'Churn Decision Tree')
+rpart.plot(churn_tree, main = 'Churn Decision Tree')
 ```
 The results from the decision tree give an indication of how useful each of the variables are at predicting churn. This tree is fairly shallow, so any of the variables that made it into the tree will most likely show up in other models that give some indication of variable importance. One interesting thing to not about this tree is that variables 126 and 226 both show up twice in the tree, confirming what has been seen from the logistic regression with elastic net penalty and the random forest variable importance in the next section.
 
@@ -263,13 +279,13 @@ As shown by this ROC curve constructed on out of sample data, the logistic regre
 ## Decision Tree
 
 ```{r dt_app, fig.align='center', message=FALSE, warning=FALSE}
-my_tree <- rpart(factor(appetency)~.,
+app_tree <- rpart(factor(appetency)~.,
                  data = select(train, -churn, -upsell),
                  method = 'class',
                  control=rpart.control(minsplit=40, minbucket=10, cp=0.001))
 
-rpart.plot(my_tree, main = 'Appetency Decision Tree')
-my_tree
+rpart.plot(app_tree, main = 'Appetency Decision Tree')
+app_tree
 ```
 
 The Decision Tree classifier selected 7 variables as the most predictive variables.  The 7 variables are listed below with the highest predictive value listed first.<br>
@@ -328,18 +344,18 @@ row.names(cv_coefs) <- row.names(coef(lreg.cv_upsell, s = 'lambda.1se'))[
 
 ## Decision Tree
 ```{r dt_upsell, fig.align='center', message=FALSE, warning=FALSE}
-my_tree <- rpart(factor(upsell)~.,
+upsell_tree <- rpart(factor(upsell)~.,
                  data = select(train, -appetency, -churn),
                  method = 'class',
                  control=rpart.control(minsplit=100, minbucket=10, cp=0.001))
 
-rpart.plot(my_tree, main = 'Up-Sell Decision Tree')
+rpart.plot(upsell_tree, main = 'Up-Sell Decision Tree')
 ```
 
 A number of control options  were used for rpart() -, namely minsplit to set the minimum number of observations per node, minbucket - minimum number of total nodes , cp - split must decrease the overall lack of fit by a factor of 0.001 (cost complexity factor). It was observed that Var 126 and Var 28 were chosen and always had a high importance.These variables probably have good predictive value for up-sell.
 
-```{r, message = FALSE}
-summary(my_tree)
+```{r, message = FALSE, echo=FALSE, eval=FALSE}
+summary(upsell_tree)
 ```
 
 ## Random Forest
@@ -354,4 +370,4 @@ varImpPlot(upsell_rf, type = 2, main = 'Variable Importance Up-Sell')
 The Random Forest classifier selects close to 200 predictor variables as having significant predictive value for up-sell. This is a very large number.  We do see that the mean decrease in Gini Index is highest on including Var 126. This matches with the results from Decision tree that Var 126 has a higher predictor value.
 
 # Other Analysis
-In addition to the steps listed here, KNN and PCA was used to explore all of the response varaibles without any interesting results. Before any model fitting was done, each predictor variable was examined individually to look for patterns and structure manually. The uni-variate work is not included here becuase it is too space consumptive.
+In addition to the steps listed here, KNN and PCA was used to explore all of the response variables without any interesting results. Before any model fitting was done, each predictor variable was examined individually to look for patterns and structure manually. The uni-variate work is not included here because it is too space consumptive.
