@@ -225,7 +225,7 @@ yhat <- predict(churn_rf, select(test, -appetency, -upsell), type = 'prob')
 
 pred <- prediction(yhat[,2], factor(test$churn))
 perf <- performance(pred, measure = "tpr", x.measure = "fpr")
-ggplot(data.frame(TPR = unlist(perf@y.values),
+p <- ggplot(data.frame(TPR = unlist(perf@y.values),
                        FPR = unlist(perf@x.values)),
             aes(FPR, TPR)) + geom_line(color = '#3b5b92', size = 1) +
   xlab('False Positvie Rate') + ylab('True Positive Rate') + 
@@ -286,7 +286,7 @@ yhat <- predict(lreg.cv, df_mat[-train_ind,], type = 'response')
 pred <- prediction(yhat, factor(test$appetency))
 perf <- performance(pred, measure = "tpr", x.measure = "fpr")
 
-ggplot(data.frame(TPR = unlist(perf@y.values),
+p <- ggplot(data.frame(TPR = unlist(perf@y.values),
                        FPR = unlist(perf@x.values)),
             aes(FPR, TPR)) + geom_line(color = '#3b5b92', size = 1) +
   xlab('False Positvie Rate') + ylab('True Positive Rate') + 
@@ -338,7 +338,7 @@ yhat <- predict(appetency_rf, select(test, -churn, -upsell), type = 'prob')
 
 pred <- prediction(yhat[,2], factor(test$appetency))
 perf <- performance(pred, measure = "tpr", x.measure = "fpr")
-ggplot(data.frame(TPR = unlist(perf@y.values),
+p <- ggplot(data.frame(TPR = unlist(perf@y.values),
                        FPR = unlist(perf@x.values)),
             aes(FPR, TPR)) + geom_line(color = '#3b5b92', size = 1) +
   xlab('False Positvie Rate') + ylab('True Positive Rate') + 
