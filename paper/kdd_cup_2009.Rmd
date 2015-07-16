@@ -58,19 +58,19 @@ library(rpart)
 library(rpart.plot)
 
 # load pre-trained models
-load('C:/Users/Jay/Documents/Northwestern/predict_454/team_project/eda.RData')
+load('c:/Users/Jay/Dropbox/pred_454_team/eda.RData')
 
 # set document width
 # read in the data to R
 # I'm using na.stings = '' to replace blanks with na
 # this also helps R read the numerical varaibles as numerical
-setwd('C:/Users/Jay/Documents/Northwestern/predict_454/KDD_Cup_2009/')
-df <- read.csv('orange_small_train.data', header = TRUE,
+setwd('c:/Users/Jay/Dropbox/pred_454_team')
+df <- read.csv('data/orange_small_train.data', header = TRUE,
                sep = '\t', na.strings = '')
 # read the target variables
-churn_ <- read.csv('orange_small_train_churn.labels', header = FALSE)
-appetency_ <- read.csv('orange_small_train_appetency.labels', header = FALSE)
-upsell_ <- read.csv('orange_small_train_upselling.labels', header = FALSE)
+churn_ <- read.csv('data/orange_small_train_churn.labels', header = FALSE)
+appetency_ <- read.csv('data/orange_small_train_appetency.labels', header = FALSE)
+upsell_ <- read.csv('data/orange_small_train_upselling.labels', header = FALSE)
 
 churn_[churn_$V1 < 0,] <- 0
 appetency_[appetency_$V1 < 0,] <- 0
