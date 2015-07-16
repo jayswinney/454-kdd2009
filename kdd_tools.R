@@ -4,8 +4,8 @@ library(dplyr)
 make_mat <- function(df_mat){
   # this function turns a dataframe into matrix format
   # it assumes that the response varaible has not been removed
-  df_mat <- select(df, -churn, -appetency, -upsell)
-  
+  df_mat <- select(df_mat, -churn, -appetency, -upsell)
+
   for (i in names(df_mat)){
     if (class(df_mat[,i]) == 'factor'){
       for(level in unique(df_mat[,i])){
@@ -18,7 +18,7 @@ make_mat <- function(df_mat){
       df_mat[,i] <- scale(df_mat[,i])
     }
   }
-  
+
   return(data.matrix(df_mat))
-  
+
 }
