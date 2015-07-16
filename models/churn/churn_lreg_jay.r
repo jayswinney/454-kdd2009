@@ -40,5 +40,3 @@ ggplot(data = plot_df, aes(x = log(lambda), y = cvm)) +
   ylab('AUC') + ggtitle('Cross Validation Curve Logistic Regression')
 # ----
 # line above with the dashes ends the code chunk
-
-
