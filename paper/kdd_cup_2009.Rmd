@@ -1,0 +1,412 @@
+---
+title: "KDD Cup 2009 - Customer Relationship Prediction"
+author: "Udy Akpan, Joe Dion, Sandra Duenas, Manjari Srivastava, Jay Swinney"
+date: "July 10, 2015"
+output: 
+  pdf_document: 
+    fig_caption: yes
+    toc: yes
+    toc_depth: 2
+---
+
+
+\pagebreak
+
+# 1. Introduction<br>
+The KDD Cup 2009 CRM problem is a prediction problem attempting to predict account cancellation (churn), account purchase of additional services (appetency), and account willingness to respond favorably to marketing pitches (up-selling).
+<br>
+The prediction of each response (churn, appetency, up selling) is performed separately using classification.
+<br>
+Given that the predictors are unknown and they are generically labeled, data imputation of missing values is done by using zero (0) for numeric variables and 'missing' for categorical variables. An indicator variable for fixed or imputed values is set to 1 to identify those observations and variable combination that was imputed.
+<br>
+Naive models were used to perform initial EDA and helped in model specification by determining the best set of variables to be included in the initial models created with only the training data.
+<br>
+
+# 2. The Modeling Problem<br>
+The problem requires the prediction of three (3) different response variables, churn, appetency, and up selling. These variables are not multinomial or different values in a categorical variable. These are independent response variables.
+<br>
+The nature of the response variable dictates as to whether an account churns or not, or whether it up-sells or not, or whether it appetences or not calls for a classification approach to the prediction problem.
+<br>
+The data set contain 230 variables of which nothing is known. The variable names are generic. There are many missing values but due to the unknown nature of the data, imputation may be narrowed to the variable itself.
+<br>
+# 3. The Data
+
+
+
+# 4. Exploratory Data Analysis
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(dev = 'pdf')
+```
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+library(lattice)
+library(plyr)
+library(dplyr)
+library(tidyr)
+library(grid)
+library(gridExtra)
+library(ROCR)
+library(e1071)
+library(knitr)
+library(ggplot2)
+library(data.table)
+library(glmnet)
+library(randomForest)
+library(rpart)
+library(rpart.plot)
+
+# load pre-trained models
+load('C:/Users/Jay/Documents/Northwestern/predict_454/team_project/eda.RData')
+
+# set document width
+# read in the data to R
+# I'm using na.stings = '' to replace blanks with na
+# this also helps R read the numerical varaibles as numerical
+setwd('C:/Users/Jay/Documents/Northwestern/predict_454/KDD_Cup_2009/')
+df <- read.csv('orange_small_train.data', header = TRUE,
+               sep = '\t', na.strings = '')
+# read the target variables
+churn_ <- read.csv('orange_small_train_churn.labels', header = FALSE)
+appetency_ <- read.csv('orange_small_train_appetency.labels', header = FALSE)
+upsell_ <- read.csv('orange_small_train_upselling.labels', header = FALSE)
+
+churn_[churn_$V1 < 0,] <- 0
+appetency_[appetency_$V1 < 0,] <- 0
+upsell_[upsell_$V1 < 0,] <- 0
+```
+## Imputing Missing Data
+
+Our strategy to impute missing data is to replace missing numeric values with a 0 and then create a boolean variable that indicates missingness. For categorical variables, all classes that represent less than 1% of the total observations were grouped into an "other" category, then a separate missing class was created.The categorical variables were imputed with the word 'missing'.  The new missing indicator variables were set to 1 to indicate that the variable was imputed or to 0 to indicate no imputation.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+
+# impute mising data with zeros and "missing"
+# also creates missing variable column
+for (i in names(df)){
+  vclass <- class(df[,i])
+  if(vclass == 'logical'){
+    # some of the variables are 100% missing, they are the only logical class vars
+    # so we can safely remove all logical class vars
+    df[,i] <- NULL
+  }else if(vclass %in% c('integer', 'numeric')){
+    #first check that there are missing variables
+    if(sum(is.na(df[,i])) == 0) next
+    # create a missing variable column
+    df[,paste(i,'_missing',sep='')] <- as.integer(is.na(df[,i]))
+    # fill missing variables with 0
+    df[is.na(df[,i]),i] <- 0
+  }else{
+    # gather infrequent levels into 'other'
+    levels(df[,i])[xtabs(~df[,i])/dim(df)[1] < 0.015] <- 'other'
+    # replace NA with 'missing'
+    levels(df[,i]) <- append(levels(df[,i]), 'missing')
+    df[is.na(df[,i]), i] <- 'missing'
+  }
+}
+
+# add the target variables to the data frame
+df$churn <- churn_$V1
+df$appetency <- appetency_$V1
+df$upsell <- upsell_$V1
+```
+
+
+Create testing and training data sets as well as a matrix form of the data that is required by some of the classifiers used in this analysis.
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+# get the index for training/testing data
+set.seed(123)
+smp_size <- floor(0.75 * nrow(df))
+train_ind <- sample(seq_len(nrow(df)), size = smp_size)
+# making a "tiny" data set so I cn quickly test r markdown and graphical paramters
+# this will be removed in the submitted version
+tiny_ind <- sample(seq_len(nrow(df)), size = floor(0.01 * nrow(df)))
+# split the data
+train <- df[train_ind, ]
+test <- df[-train_ind, ]
+tiny <- df[tiny_ind, ]
+
+df_mat <- select(df, -churn, -appetency, -upsell)
+
+for (i in names(df_mat)){
+  if (class(df_mat[,i]) == 'factor'){
+    for(level in unique(df_mat[,i])){
+      df_mat[sprintf('%s_dummy_%s', i, level)] <- ifelse(df_mat[,i] == level, 1, 0)
+    }
+    df_mat[,i] <- NULL
+  } else {
+    # scale numeric variables
+    # this is important for regularized logistic regression and KNN
+    df_mat[,i] <- scale(df_mat[,i])
+  }
+}
+
+df_mat <- data.matrix(df_mat)
+```
+
+## Churn
+
+The challenge for the KKD cup 2009 consisted of predicting 3 variables from the same data set. This paper will focus on one variable at a time starting with churn.
+
+### Logistic Regression with Elastic-Net Penalty
+
+A useful technique for understanding which variables have predictive power is to apply logistic regression with a regularization term. In this case elastic-net penalty is used to explore the predictive importance of the variables.
+
+http://www.stanford.edu/~hastie/glmnet/glmnet_alpha.html
+
+```{r lreg_churn, echo=FALSE, fig.width=5, fig.height=4, fig.align='center'}
+# view the Area Under the Curve for different values of lambda.
+plot_df <- data.frame(cvm = churn_lreg.cv$cvm, cvup = churn_lreg.cv$cvup,
+                      cvlo = churn_lreg.cv$cvlo, lambda = churn_lreg.cv$lambda)
+
+ggplot(data = plot_df, aes(x = log(lambda), y = cvm)) +
+  geom_line(colour = '#d9544d', size = 1) +
+  geom_ribbon(aes(x = log(lambda), ymin = cvlo, ymax = cvup),
+              alpha=0.2, fill = '#d9544d') +
+  geom_vline(xintercept = log(churn_lreg.cv$lambda.min), linetype = 3, size = 1) +
+  geom_vline(xintercept = log(churn_lreg.cv$lambda.1se), linetype = 3, size = 1) +
+  ylab('AUC') + ggtitle('Cross Validation Curve Logistic Regression')
+
+```
+This plot shows that not all the variables are useful for classification. Two vertical lines in this plot represent the model with the best performance and the most regularized model within one standard deviation of the top performer. Performance is measured on out of sample data. The regularized and cross validated logistic regression selected a model with 155 non-zero variables
+<br>
+
+Some of the variables selected by the regularized logistic regression are in the table below with their coefficients. Only selected variables are shown for brevity.
+```{r kable_churn, results= 'asis', echo=FALSE, message=FALSE, warning=FALSE}
+cv_coefs <- data.table(variable = row.names(coef(churn_lreg.cv))[
+                          abs(as.vector(coef(churn_lreg.cv))) > 1e-5],
+                       coeficient = coef(churn_lreg.cv)[abs(coef(churn_lreg.cv)) > 1e-5])
+
+
+kable(cv_coefs[variable %like% '26'],
+      caption = "Variables Selected by Elastic-Net")
+```
+
+
+
+### Decision Tree
+
+```{r dt_churn, echo=FALSE, fig.width=5, fig.height=4, fig.align='center'}
+rpart.plot(churn_tree, main = 'Churn Decision Tree')
+```
+The results from the decision tree give an indication of how useful each of the variables are at predicting churn. This tree is fairly shallow, so any of the variables that made it into the tree will most likely show up in other models that give some indication of variable importance. One interesting thing to not about this tree is that variables 126 and 226 both show up twice in the tree, confirming what has been seen from the logistic regression with elastic net penalty and the random forest variable importance in the next section.
+
+### Random Forest
+
+```{r rf_churn,echo=FALSE, fig.width=5, fig.height=4, fig.align='center'}
+plot_df = data.frame(churn_rf$importance)
+plot_df$Variable <- factor(row.names(plot_df))
+plot_df$Variable <- factor(plot_df$Variable,
+                           levels = plot_df$Variable[order(plot_df$MeanDecreaseGini)])
+
+plot_df <- plot_df[plot_df$MeanDecreaseGini > 50,]
+
+ggplot(data = plot_df, aes(x = Variable, y = MeanDecreaseGini)) +
+  geom_bar(stat = "identity", fill = '#d9544d') + coord_flip() +
+  theme(axis.text.y = element_text(colour = 'black')) +
+  ggtitle('Varible Importance Churn')
+```
+With the random forest as with the decision tree and logistic regression Var226 has shown to be an important indicator of churn. Variable 204 also shows up high in the variable importance plot from the random forest and in the single decision tree from the previous section.
+
+```{r, echo=FALSE, fig.width=5, fig.height=4, fig.align='center'}
+yhat <- predict(churn_rf, select(test, -appetency, -upsell), type = 'prob')
+
+pred <- prediction(yhat[,2], factor(test$churn))
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+p <- ggplot(data.frame(TPR = unlist(perf@y.values),
+                       FPR = unlist(perf@x.values)),
+            aes(FPR, TPR)) + geom_line(color = '#d9544d', size = 1) +
+  xlab('False Positvie Rate') + ylab('True Positive Rate') +
+  ggtitle('Random Forest ROC Curve') +
+  theme(plot.title = element_text(lineheight=.8, face="bold")) +
+  annotate("text", x = 0.75, y = 0.20, label = sprintf('AUC: %f',
+  attributes(performance(pred, 'auc'))$y.values[[1]]))
+p
+```
+The accuracy of the random forest leaves something to be desired, there is clearly more work to do. It is not displayed here, but the random forest fit extremely well to in-sample data, this indicates that there is more work to be done to combat over-fitting. Options include changing the requirements for leaf and split sizes and trying the random forest with a subset of variables such as the ones selected by regularized logistic regression.
+
+
+## Appetency
+The next response variable to discuss is appetency. As defined in the task description on the KDD website, appetency is the propensity to buy a service or a product.
+
+### Logistic Regression with Elastic-Net Penalty
+```{r lreg_app, echo=FALSE, fig.width=5, fig.height=4, fig.align='center'}
+# view the AUC of differnt values of lambda
+plot_df <- data.frame(cvm = app_lreg.cv$cvm, cvup = app_lreg.cv$cvup,
+                      cvlo = app_lreg.cv$cvlo, lambda = app_lreg.cv$lambda)
+
+ggplot(data = plot_df, aes(x = log(lambda), y = cvm)) +
+  geom_line(colour = '#3b5b92', size = 1) +
+  geom_ribbon(aes(x = log(lambda), ymin = cvlo, ymax = cvup),
+              alpha=0.2, fill = '#3b5b92') +
+  geom_vline(xintercept = log(app_lreg.cv$lambda.min), linetype = 3, size = 1) +
+  geom_vline(xintercept = log(app_lreg.cv$lambda.1se), linetype = 3, size = 1) +
+  ylab('AUC') + ggtitle('Cross Validation Curve Logistic Regression')
+
+
+```
+The results from the logistic regression are very promising and interesting. The AUC peaks above 0.8 which is nice to see, but more interestingly the AUC does not dramatically decline till almost all of the variables are removed from the model. This shows that one or two of the variables are very strong indicators of appetency. <br>
+
+Taking a look at the 3 variables in the highly regularized model (right-most vertical line) shows that Var126 and a certain level of Var218 plus an intercept are very indicative of appetency. This is encouraging because it suggest that predicting appetency will be an easier problem.
+```{r kable_app, results= 'asis', echo=FALSE, message=FALSE, warning=FALSE}
+cv_coefs <- data.frame(
+  coeficient = coef(app_lreg.cv, s = 'lambda.1se')[abs(coef(app_lreg.cv,
+                                                        s = 'lambda.1se')) > 1e-3])
+
+row.names(cv_coefs) <- row.names(coef(app_lreg.cv,
+   s = 'lambda.1se'))[abs(as.vector(coef(app_lreg.cv, s = 'lambda.1se'))) > 1e-3]
+
+kable(cv_coefs, caption = "Variables Selected by Elastic-Net")
+```
+
+
+```{r lreg_app_perf, echo=FALSE, fig.width=5, fig.height=4, fig.align='center'}
+yhat <- predict(app_lreg.cv, df_mat[-train_ind,], type = 'response')
+
+pred <- prediction(yhat, factor(test$appetency))
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+
+p <- ggplot(data.frame(TPR = unlist(perf@y.values),
+                       FPR = unlist(perf@x.values)),
+            aes(FPR, TPR)) + geom_line(color = '#3b5b92', size = 1) +
+  xlab('False Positvie Rate') + ylab('True Positive Rate') +
+  ggtitle('Logistic Regression ROC Curve') +
+  theme(plot.title = element_text(lineheight=.8, face="bold")) +
+  annotate("text", x = 0.75, y = 0.20, label = sprintf('AUC: %f',
+  attributes(performance(pred, 'auc'))$y.values[[1]]))
+p
+```
+As shown by this ROC curve constructed on out of sample data, the logistic regression performs very well identifying appetency.
+
+
+### Decision Tree
+
+```{r dt_app, echo=FALSE, fig.width=5, fig.height=4, fig.align='center'}
+rpart.plot(app_tree, main = 'Appetency Decision Tree')
+#app_tree
+```
+
+The Decision Tree classifier selected 7 variables as the most predictive variables.  The 7 variables are listed below with the highest predictive value listed first.  
+The following configuration: minsplit=40 to set the minimum number of observations per node, minbucket=10 to set the minimum number of total nodes, and cp=0.001 to set the cost complexity factor with a split that must decrease the overall lack of fit by a factor of 0.001.    
+1.	Var126  
+2.	Var218  
+3.	Var204  
+4.	Var38  
+5.	Var206  
+6.	Var223  
+7.	Var81  
+
+### Random Forest
+
+```{r rf_app, echo=FALSE, fig.width=5, fig.height=4, fig.align='center'}
+plot_df = data.frame(app_rf$importance)
+plot_df$Variable <- factor(row.names(plot_df))
+plot_df$Variable <- factor(plot_df$Variable,
+                           levels = plot_df$Variable[order(plot_df$MeanDecreaseGini)])
+
+plot_df <- plot_df[plot_df$MeanDecreaseGini > 12,]
+
+
+ggplot(data = plot_df, aes(x = Variable,
+                           y = MeanDecreaseGini)) +
+  geom_bar(stat = "identity", fill = '#3b5b92') + coord_flip() +
+  theme(axis.text.y = element_text(colour = 'black')) +
+  ggtitle('Variable Importance Appetency')
+```
+An interesting take away from this plot is that the random forest identified variable 226 & 126 as two of the top three most important variables. This echos the output from the logistic regression and further confirms that these are important variables. However it will be shown that the random forest did not perform nearly as well as the regularized logistic regression, this is because the random forest is severely over-fit, it will need significant tuning before it is on par with the regularized logistic regression.
+
+
+```{r rf_app_perf, echo=FALSE, fig.width=5, fig.height=4, fig.align='center'}
+yhat <- predict(app_rf, select(test, -churn, -upsell), type = 'prob')
+
+pred <- prediction(yhat[,2], factor(test$appetency))
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+p <- ggplot(data.frame(TPR = unlist(perf@y.values),
+                       FPR = unlist(perf@x.values)),
+            aes(FPR, TPR)) + geom_line(color = '#3b5b92', size = 1) +
+  xlab('False Positvie Rate') + ylab('True Positive Rate') +
+  ggtitle(' Random Forest ROC Curve') +
+  theme(plot.title = element_text(lineheight=.8, face="bold")) +
+  annotate("text", x = 0.75, y = 0.20, label = sprintf('AUC: %f',
+  attributes(performance(pred, 'auc'))$y.values[[1]]))
+p
+```
+
+
+## Up-Sell
+The last response variable to analyze is up-sell. As defined in the task description, up-selling can imply selling something additional, or selling something that is more profitable or otherwise preferable for the seller instead of the original sale.
+
+### Logistic Regression with Elastic-Net Penalty
+```{r lreg_upsell, echo=FALSE, fig.width=5, fig.height=4, fig.align='center'}
+# view the AUC of differnt values of lambda
+plot_df <- data.frame(cvm = upsell_lreg.cv$cvm, cvup = upsell_lreg.cv$cvup,
+                      cvlo = upsell_lreg.cv$cvlo, lambda = upsell_lreg.cv$lambda)
+
+ggplot(data = plot_df, aes(x = log(lambda), y = cvm)) +
+  geom_line(colour = '#39ad48', size = 1) +
+  geom_ribbon(aes(x = log(lambda), ymin = cvlo, ymax = cvup),
+              alpha=0.2, fill = '#39ad48') +
+  geom_vline(xintercept = log(upsell_lreg.cv$lambda.min), linetype = 3, size = 1) +
+  geom_vline(xintercept = log(upsell_lreg.cv$lambda.1se), linetype = 3, size = 1) +
+  ylab('AUC') + ggtitle('Cross Validation Curve Logistic Regression')
+```
+The results from the regularized logistic regression are both promising and somewhat disappointing at the same time. The plot shows that comparable performance can be achieved by removing all but about 80 variables, but unfortunately the regularization does not appear to yield much in the way of performance gain.
+
+
+```{r lreg_upsell_coefs, eval=FALSE, echo=FALSE}
+cv_coefs <- data.frame( coeficient = coef(upsell_lreg.cv, s = 'lambda.1se')[
+  abs(coef(upsell_lreg.cv, s = 'lambda.1se')) > 1e-3])
+
+row.names(cv_coefs) <- row.names(coef(upsell_lreg.cv, s = 'lambda.1se'))[
+  abs(as.vector(coef(upsell_lreg.cv, s = 'lambda.1se'))) > 1e-3]
+```
+
+### Decision Tree
+```{r dt_upsell, echo=FALSE, fig.width=5, fig.height=4, fig.align='center'}
+rpart.plot(upsell_tree, main = 'Up-Sell Decision Tree')
+```
+
+A number of control options  were used for rpart() -, namely minsplit to set the minimum number of observations per node, minbucket - minimum number of total nodes , cp - split must decrease the overall lack of fit by a factor of 0.001 (cost complexity factor). It was observed that Var 126 and Var 28 were chosen and always had a high importance.These variables probably have good predictive value for up-sell.
+
+```{r, eval=FALSE, echo=FALSE}
+summary(upsell_tree)
+```
+
+### Random Forest
+```{r rf_upsell, echo=FALSE, fig.width=5, fig.height=4, fig.align='center'}
+plot_df = data.frame(churn_rf$importance)
+plot_df$Variable <- factor(row.names(plot_df))
+plot_df$Variable <- factor(plot_df$Variable,
+                           levels = plot_df$Variable[order(plot_df$MeanDecreaseGini)])
+
+plot_df <- plot_df[plot_df$MeanDecreaseGini > 50,]
+p <-  ggplot(data = plot_df, aes(x = Variable,
+                           y = MeanDecreaseGini)) +
+        geom_bar(stat = "identity", fill = '#39ad48') + coord_flip() +
+        theme(axis.text.y = element_text(colour = 'black')) +
+        ggtitle('Variable Importance Up-Sell')
+p
+```
+
+
+The Random Forest classifier selects close to 200 predictor variables as having significant predictive value for up-sell. This is a very large number.  We do see that the mean decrease in Gini Index is highest on including Var 126. This matches with the results from Decision tree that Var 126 has a higher predictor value.
+
+## Other Analysis
+In addition to the steps listed here, KNN and PCA was used to explore all of the response variables without any interesting results. Before any model fitting was done, each predictor variable was examined individually to look for patterns and structure manually. The uni-variate work is not included here because it is too space consumptive.
+
+#5. Predictive Modeling: Methods and Results
+
+##5a Train/Test Data
+
+#6. Comparison of Results
+
+#7. Conclusions
+
+\pagebreak
+```{r, echo=FALSE}
+# this is stupid, for some reason the last plot cannot take the fig.align = 'center'
+# argument without causing an error in the document creation. A work around would be to include
+# a plot on the last page without the command and then cut the pdf off at the last page
+p
+```
