@@ -2,7 +2,6 @@
 # the regularization parameter is selected automatically using cross validation
 
 library(glmnet)
-library(ggplot2)
 
 setwd('c:/Users/Jay/Dropbox/pred_454_team')
 
@@ -19,24 +18,10 @@ app_lreg_jay <- cv.glmnet(df_mat[train_ind,],
                            factor(train$appetency), family = "binomial",
                            nfolds = 4, type.measure = 'auc')
 
-save(app_lreg_jay, file = 'models/appetency/app_lreg_jay.RData')
 
-# for code that would be useful for the paper highlight it like this
-# the line below lets with the dashes helps knitr find a particular chunk of
-# code to be inseterted into a r markdown document.
-# ---- churn_lreg_jay_plot ----
-# library(ggplot2)
-plot_df <- data.frame(cvm = app_lreg_jay$cvm, cvup = app_lreg_jay$cvup,
-                      cvlo = app_lreg_jay$cvlo, lambda = app_lreg_jay$lambda)
-
-ggplot(data = plot_df, aes(x = log(lambda), y = cvm)) +
-  geom_line(colour = '#d9544d', size = 1) +
-  geom_ribbon(aes(x = log(lambda), ymin = cvlo, ymax = cvup),
-              alpha=0.2, fill = '#d9544d') +
-  geom_vline(xintercept = log(app_lreg_jay$lambda.min),
-             linetype = 3, size = 1) +
-  geom_vline(xintercept = log(app_lreg_jay$lambda.1se),
-             linetype = 3, size = 1) +
-  ylab('AUC') + ggtitle('Cross Validation Curve Logistic Regression')
-# ----
-# line above with the dashes ends the code chunk
+# make predictions
+upsell_lreg_jay_predictions <- predict(upsell_lreg_jay, df_mat[-train_ind,],
+                                      type = 'response', s = 'lambda.min')
+# save the output
+save(list = c('app_lreg_jay', 'app_lreg_jay_predictions'),
+     file = 'models/appetency/app_lreg_jay.RData')
