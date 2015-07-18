@@ -8,7 +8,7 @@ make_mat <- function(df_mat){
   
   for (i in names(df_mat)){
     if (class(df_mat[,i]) == 'factor'){
-      for(level in unique(df_mat[,i])){
+      for(level in unique(df_mat[,i])[2:length( unique(df_mat[,i]))]){
         df_mat[sprintf('%s_dummy_%s', i, level)] <- ifelse(df_mat[,i] == level, 1, 0)
       }
       df_mat[,i] <- NULL
