@@ -10,7 +10,7 @@
 # read in the data to R
 # I'm using na.stings = '' to replace blanks with na
 # this also helps R read the numerical varaibles as numerical
-setwd('c:/Users/Jay/Dropbox/pred_454_team')
+# setwd('c:/Users/Jay/Dropbox/pred_454_team')
 df <- read.csv('data/orange_small_train.data', header = TRUE,
                sep = '\t', na.strings = '')
 # read the target variables
