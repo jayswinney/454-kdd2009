@@ -3,7 +3,7 @@ library(dplyr)
 
 make_mat <- function(df_mat){
   # this function turns a dataframe into matrix format
-  # it assumes that the response varaible has not been removed
+  # it assumes that the response varaibles have not been removed
 
   df_mat <- select(df_mat, -churn, -appetency, -upsell)
 
@@ -72,4 +72,24 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
                                       layout.pos.col = matchidx$col))
     }
   }
+}
+
+
+all_interactions <- function(df_mat, var){
+  # input:
+  #   - df_mat: data matrix
+  #   - var: variable in that matrix
+  # output:
+  #   data matrix with interaction between all variables and var
+
+  # this is a very brute force method of finding interaction terms
+
+  int_mat <- df_mat * df_mat[,var]
+
+  for (i in 1:dim(int_mat)[2]){
+    dimnames(int_mat)[[2]][i]<- sprintf('%s_%s_inter', var,
+                                        dimnames(int_mat)[[2]][i])
+  }
+
+  return(cbind(df_mat, int_mat))
 }
