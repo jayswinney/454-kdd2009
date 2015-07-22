@@ -15,8 +15,10 @@ df <- read.csv('data/orange_small_train.data', header = TRUE,
                sep = '\t', na.strings = '')
 # read the target variables
 churn_ <- read.csv('data/orange_small_train_churn.labels', header = FALSE)
-appetency_ <- read.csv('data/orange_small_train_appetency.labels', header = FALSE)
-upsell_ <- read.csv('data/orange_small_train_upselling.labels', header = FALSE)
+appetency_ <- read.csv('data/orange_small_train_appetency.labels',
+                        header = FALSE)
+upsell_ <- read.csv('data/orange_small_train_upselling.labels',
+                    header = FALSE)
 
 churn_[churn_$V1 < 0,] <- 0
 appetency_[appetency_$V1 < 0,] <- 0
@@ -27,7 +29,8 @@ upsell_[upsell_$V1 < 0,] <- 0
 for (i in names(df)){
   vclass <- class(df[,i])
   if(vclass == 'logical'){
-    # some of the variables are 100% missing, they are the only logical class vars
+    # some of the variables are 100% missing,
+    # they are the only logical class vars
     # so we can safely remove all logical class vars
     df[,i] <- NULL
   }else if(vclass %in% c('integer', 'numeric')){
@@ -51,12 +54,14 @@ df$churn <- churn_$V1
 df$appetency <- appetency_$V1
 df$upsell <- upsell_$V1
 
-# this portion of the code should be copied exactly in every data transformation script
+# this portion of the code should be copied exactly
+# in every data transformation script
 # that way we will all be using the same training/testing data
 set.seed(123)
 smp_size <- floor(0.75 * nrow(df))
 train_ind <- sample(seq_len(nrow(df)), size = smp_size)
-# making a "tiny" data set so I cn quickly test r markdown and graphical paramters
+# making a "tiny" data set so I can quickly
+# test r markdown and graphical paramters
 # this will be removed in the submitted version
 tiny_ind <- sample(seq_len(nrow(df)), size = floor(0.01 * nrow(df)))
 # split the data
