@@ -5,7 +5,7 @@ make_mat <- function(df_mat){
   # this function turns a dataframe into matrix format
   # it assumes that the response varaibles have not been removed
 
-  df_mat <- select(df_mat, -churn, -appetency, -upsell)
+  df_mat <- dplyr::select(df_mat, -churn, -appetency, -upsell)
 
   for (i in names(df_mat)){
     if (class(df_mat[,i]) == 'factor'){
