@@ -22,8 +22,8 @@ train_colnames <- colnames(select(train,-churn, -upsell, -appetency))
 churn_rf_manjari <- randomForest(x=train[,train_colnames], y=factor(train$churn) ,
                                      ntree = 10, nodesize = 10, importance = TRUE)
 plot(churn_rf_manjari)
-varImp <- importance(churn_rf_manjari)
-varImp
+churn.varImp <- importance(churn_rf_manjari)
+#churn.varImp
 varImpPlot(churn_rf_manjari, type=1)
 # make predictions
 
@@ -35,7 +35,7 @@ table(test$churn, churn_rf_manjari_predictions)
 
 #Creating Random forest with top 25 variables based on variable importance reduced accuracy of the
 # model . So we will be using the full model itself.
-#selVars <- names(sort(varImp[,1],decreasing=T))[1:25]
+#selVars <- names(sort(churn.varImp[,1],decreasing=T))[1:25]
 
 #churn_rf_top_25_manjari <- randomForest(x=train[,selVars], y=factor(train$churn) ,
 #                                        ntree = 10, nodesize = 10, importance = TRUE)
