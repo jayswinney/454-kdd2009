@@ -29,11 +29,11 @@ for (n in colnames(train)){
 f <- formula( substr(f,1, nchar(f)-12))
 
 
-upsell_nn_jay = neuralnet(f, data = train_df, stepmax = 1000,
+upsell_nn_jay = neuralnet(f, data = train, stepmax = 1000,
                           lifesign.step = 10, hidden = 384, lifesign ='full')
 
-save(upsell_nn_jay, file = 'models/upsel/upsell_nn_jay.RData')
+save(upsell_nn_jay, file = 'models/upsell/upsell_nn_jay.RData')
 
 
-
+predict(upsell_nn_jay, train_df)
                                    
