@@ -20,7 +20,7 @@ app_lreg_jay <- cv.glmnet(df_mat[train_ind,],
 
 
 # make predictions
-upsell_lreg_jay_predictions <- predict(upsell_lreg_jay, df_mat[-train_ind,],
+app_lreg_jay_predictions <- predict(app_lreg_jay, df_mat[-train_ind,],
                                       type = 'response', s = 'lambda.min')
 # save the output
 save(list = c('app_lreg_jay', 'app_lreg_jay_predictions'),
