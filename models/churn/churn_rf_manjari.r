@@ -15,36 +15,44 @@ source('kdd_tools.r')
 df_mat <- make_mat(df)
 
 
-set.seed(512356)
 train_colnames <- colnames(select(train,-churn, -upsell, -appetency))
 
-
+set.seed(512356)
 churn_rf_manjari <- randomForest(x=train[,train_colnames], y=factor(train$churn) ,
-                                     ntree = 10, nodesize = 10, importance = TRUE)
+                                     ntree = 50, nodesize = 10, importance = TRUE)
 plot(churn_rf_manjari)
-varImp <- importance(churn_rf_manjari)
-varImp
+churn.varImp <- importance(churn_rf_manjari)
+#churn.varImp
 varImpPlot(churn_rf_manjari, type=1)
 # make predictions
 
-churn_rf_manjari_predictions <- predict(churn_rf_manjari, newdata=test,s = 'lambda.min')
+churn_rf_manjari_predictions <- predict(churn_rf_manjari, newdata=test)
 # Confusion Matrix 
 #Confusion Matrix
 table(test$churn, churn_rf_manjari_predictions)
 #Accuracy = 0.924
 
-#Creating Random forest with top 25 variables based on variable importance reduced accuracy of the
+#Creating Random forest with top 50 variables based on variable importance reduced accuracy of the
 # model . So we will be using the full model itself.
-#selVars <- names(sort(varImp[,1],decreasing=T))[1:25]
-
-#churn_rf_top_25_manjari <- randomForest(x=train[,selVars], y=factor(train$churn) ,
-#                                        ntree = 10, nodesize = 10, importance = TRUE)
+selVars <- names(sort(churn.varImp[,1],decreasing=T))[1:50]
+set.seed(123)
+churn_rf_top_50_manjari <- randomForest(x=train[,selVars], y=factor(train$churn) ,
+                                        ntree = 50, nodesize = 10, importance = TRUE)
 # AUC 
-#churn_rf_top_25_manjari_predictions <- predict(churn_rf_top_25_manjari, newdata=test,s = 'lambda.min')
+# On train data 
+churn_rf_top_50_manjari_predictions_train <- predict(churn_rf_top_50_manjari, newdata=train,s = 'lambda.min')
 # Confusion Matri#Confusion Matrix
-#table(test$churn, churn_rf_top_25_manjari_predictions)
-#Accuracy = (11541+9)=0.922
+table(train$churn, churn_rf_top_50_manjari_predictions_train)
+# On test data
+churn_rf_top_50_manjari_predictions_test <- predict(churn_rf_top_50_manjari, newdata=select(test, -appetency, -upsell),s = 'lambda.min', type='Class')
+# Confusion Matri#Confusion Matrix
 
+table(test$churn, churn_rf_top_50_manjari_predictions_test)
+#Accuracy =0.924
+
+
+churn_rf_manjari <- churn_rf_top_50_manjari
+churn_rf_manjari_predictions <- churn_rf_top_50_manjari_predictions_test
 # save the output
 save(list = c('churn_rf_manjari', 'churn_rf_manjari_predictions'),
      file = 'models/churn/churn_rf_manjari.RData')
