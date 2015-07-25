@@ -1,5 +1,27 @@
 ##  appetency_knn_sandra
 
+##################################################################################################
+###       COMMENT FOR NAIVE MODEL FOR APPETENCY 
+##################################################################################################
+#The Nearest Neighbor K technique was applied in a computational EDA manner to obtain the highest 
+#AUC score for appetency.
+#
+#The variable selection process was based on the smallest deviance of each variable.  
+#This variable selection process resulted in 31 variables out of 230 with deviance of 504.483 
+#based on the Calibration data set.  
+#
+#The Calibration data set is a 10% random selection of observations from the original data set.
+#
+#The resulting knn model used the selected variables and k = 200.  
+#It shows that the model is overfitting the data because the AUC Score with the Train data 
+#is 0.9904 but the AUC Score with the Test data is 0.6548, which is about a 33-point difference.  
+#The AUC for the Test is somewhat significantly above 0.50 of a random guess, so we could 
+#consider the knn model for upsell to be reasonably accurate.
+#
+##################################################################################################
+##################################################################################################
+
+
 ###   SET DIRECTORY PATH:
 setwd("C:/Users/Sandra/Dropbox/pred_454_team/data")
 
@@ -48,6 +70,7 @@ numericVars <- vars[sapply(dTrain[,vars],class) %in% c('numeric','integer')]
 rm(list=c('d','churn','appetency','upselling'))  
 
 outcome <- 'appetency' 	
+
 pos <- '1' 	
 
 
@@ -204,7 +227,7 @@ dTrain$kpred <- knnPred(dTrain[,selVars])
 appetency.knnTrainPred <- dTrain$kpred 
 # save the output
 setwd("C:/Users/Sandra/Dropbox/pred_454_team/models/appetency")
-save(list = c('appetency.knnTrainPred'), file = 'appetency.knnTrainPred.csv')
+save(list = c('appetency.knnTrainPred'), file = 'appetency.knnTrainPred.RData')
 
 # plot the predictions
 plotROC(dTrain$kpred,dTrain[,outcome])
@@ -223,7 +246,7 @@ dCal$kpred <- knnPred(dCal[,selVars])
 appetency.knnCalPred <- dCal$kpred
 # save the output
 setwd("C:/Users/Sandra/Dropbox/pred_454_team/models/appetency")
-save(list = c('appetency.knnCalPred'), file = 'appetency.knnCalPred.csv')
+save(list = c('appetency.knnCalPred'), file = 'appetency.knnCalPred.RData')
 
 # plot the predictions
 plotROC(dCal$kpred,dCal[,outcome])
@@ -240,7 +263,7 @@ dTest$kpred <- knnPred(dTest[,selVars])
 appetency.knnTestPred <- dTest$kpred
 # save the output
 setwd("C:/Users/Sandra/Dropbox/pred_454_team/models/appetency")
-save(list = c('appetency.knnTestPred'), file = 'appetency.knnTestPred.csv')
+save(list = c('appetency.knnTestPred'), file = 'appetency.knnTestPred.RData')
 
 # plot the predictions
 plotROC(dTest$kpred,dTest[,outcome])
