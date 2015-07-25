@@ -2,38 +2,40 @@
 title: "KDD Cup 2009 - Customer Relationship Prediction"
 author: "Udy Akpan, Joe Dion, Sandra Duenas, Manjari Srivastava, Jay Swinney"
 date: "July 10, 2015"
-output: 
-  pdf_document: 
+output:
+  pdf_document:
     fig_caption: yes
+    number_sections: yes
     toc: yes
-    toc_depth: 2
+    fig_height: 3
+    fig_width: 7
 ---
 
 
 \pagebreak
 
-# 1. Introduction<br>
-The KDD Cup 2009 CRM problem is a prediction problem attempting to predict account cancellation (churn), account purchase of additional services (appetency), and account willingness to respond favorably to marketing pitches (up-selling).
-<br>
-The prediction of each response (churn, appetency, up selling) is performed separately using classification.
-<br>
-Given that the predictors are unknown and they are generically labeled, data imputation of missing values is done by using zero (0) for numeric variables and 'missing' for categorical variables. An indicator variable for fixed or imputed values is set to 1 to identify those observations and variable combination that was imputed.
-<br>
-Naive models were used to perform initial EDA and helped in model specification by determining the best set of variables to be included in the initial models created with only the training data.
-<br>
+# Introduction  
 
-# 2. The Modeling Problem<br>
-The problem requires the prediction of three (3) different response variables, churn, appetency, and up selling. These variables are not multinomial or different values in a categorical variable. These are independent response variables.
-<br>
-The nature of the response variable dictates as to whether an account churns or not, or whether it up-sells or not, or whether it appetences or not calls for a classification approach to the prediction problem.
-<br>
-The data set contain 230 variables of which nothing is known. The variable names are generic. There are many missing values but due to the unknown nature of the data, imputation may be narrowed to the variable itself.
-<br>
-# 3. The Data
+The KDD Cup 2009 CRM problem is a prediction problem attempting to predict account cancellation (churn), account purchase of additional services (appetency), and account willingness to respond favorably to marketing pitches (up-selling).  
+The prediction of each response (churn, appetency, up selling) is performed separately using classification.  
+
+Given that the predictors are unknown and they are generically labeled, data imputation of missing values is done by using zero (0) for numeric variables and 'missing' for categorical variables. An indicator variable for fixed or imputed values is set to 1 to identify those observations and variable combination that was imputed.  
+
+Naive models were used to perform initial EDA and helped in model specification by determining the best set of variables to be included in the initial models created with only the training data.  
+
+# The Modeling Problem  
+
+The problem requires the prediction of three (3) different response variables, churn, appetency, and up selling. These variables are not multinomial or different values in a categorical variable. These are independent response variables.  
+
+The nature of the response variable dictates as to whether an account churns or not, or whether it up-sells or not, or whether it appetences or not calls for a classification approach to the prediction problem.  
+
+The data set contain 230 variables of which nothing is known. The variable names are generic. There are many missing values but due to the unknown nature of the data, imputation may be narrowed to the variable itself.  
+
+# The Data
 
 
 
-# 4. Exploratory Data Analysis
+# Exploratory Data Analysis
 
 ```{r setup, include=FALSE}
 library(knitr)
@@ -288,7 +290,7 @@ rpart.plot(app_tree, main = 'Appetency Decision Tree')
 ```
 
 The Decision Tree classifier selected 7 variables as the most predictive variables.  The 7 variables are listed below with the highest predictive value listed first.  
-The following configuration: minsplit=40 to set the minimum number of observations per node, minbucket=10 to set the minimum number of total nodes, and cp=0.001 to set the cost complexity factor with a split that must decrease the overall lack of fit by a factor of 0.001.    
+The following configuration: minsplit=40 to set the minimum number of observations per node, minbucket=10 to set the minimum number of total nodes, and cp=0.001 to set the cost complexity factor with a split that must decrease the overall lack of fit by a factor of 0.001.
 1.	Var126  
 2.	Var218  
 3.	Var204  
@@ -395,13 +397,123 @@ The Random Forest classifier selects close to 200 predictor variables as having 
 ## Other Analysis
 In addition to the steps listed here, KNN and PCA was used to explore all of the response variables without any interesting results. Before any model fitting was done, each predictor variable was examined individually to look for patterns and structure manually. The uni-variate work is not included here because it is too space consumptive.
 
-#5. Predictive Modeling: Methods and Results
+# Predictive Modeling: Methods and Results
+```{r, echo = FALSE}
+knitr::read_chunk('script_for_paper.R')
+```
+```{r rdata,echo = FALSE}
+```
+```{r combine predictions,echo = FALSE}
+```
 
-##5a Train/Test Data
+## Train/Test Data
 
-#6. Comparison of Results
+## Appetency
 
-#7. Conclusions
+### Naïve Bayes
+The Naïve Bayes technique was applied in a computational EDA manner to obtain the highest AUC score for appetency.
+
+The variable selection process was based on the smallest deviance of each variable.  This variable selection process resulted in 31 variables out of 230 with deviance of 186.294 based on the Calibration data set.  
+
+The Calibration data set is a 10% random selection of observations from the original data set.
+
+The resulting Naive Bayes model using the selected variables shows that the model is overfitting the data because the AUC Score with the Train data is 0.9619 but the AUC Score with the Test data is 0.7624, which is about a 20-point difference.  However, the AUC for the Test is significantly above 0.50 of a random guess, so we could consider the Naive Bayes model for appetency to be reasonably accurate.
+
+### Random Forest  
+The Random Forest classifier was used to build a classification model for Appetency variable on the training data set. The parameters chosen were number of trees = 50 and minimum bucket size =10 . The first model was built choosing all the 230 variables and the imputed variables. This resulted in a random forest model with over 200 variables. This model however was not able to detect appetency=1 cases in the test data set  in spite of a decent accuracy level of 98.6% in test data set.  
+
+Multiple models were created using a subset of variables based on importance - top 25 and top 50 variables. These models did have a high accuracy but were not able to detect appetency=1 cases in test data set. 
+Also models were created using the sample size option (sampsize = c(10,30)) , this implies that the algorithm will randomly draw 10 and 30 from two values of appetency = 0 and 1 to grow the tree. This improved the accuracy of the model, but appetency =1 customers were still not predicted correctly. Random forest may not be a good classifier for appetency.  
+
+Area under the curve (AUC) is used to determine goodness of fit for the model. AUC for Random forest model for Appetency in test data is 0.622. This is a low value, so the model is only slightly better than a random pick.  
+
+
+### Logistic Regression
+
+### K-Nearest Neighbors
+The Nearest Neighbor K technique was applied in a computational EDA manner to obtain the highest AUC score for appetency. 
+
+The variable selection process was based on the smallest deviance of each variable.  This variable selection process resulted in 31 variables out of 230 with deviance of 504.483 based on the Calibration data set.   
+
+The Calibration data set is a 10% random selection of observations from the original data set.  
+
+The resulting knn model used the selected variables and k = 200.  It shows that the model is overfitting the data because the AUC Score with the Train data is 0.9904 but the AUC Score with the Test data is 0.6548, which is about a 33-point difference.  The AUC for the Test is somewhat significantly above 0.50 of a random guess, so we could consider the knn model for upsell to be reasonably accurate.  
+
+### Model Performance
+```{r app ROC, echo = FALSE, fig.width = 7, fig.height=4}
+```
+\pagebreak
+
+## Churn
+
+### Naïve Bayes
+
+The Naïve Bayes technique was applied in a computational EDA manner to obtain the highest AUC score for churn.
+
+The variable selection process was based on the smallest deviance of each variable.  This variable selection process resulted in 47 variables out of 230 with deviance of 291.862 based on the Calibration data set.  
+
+The Calibration data set is a 10% random selection of observations from the original data set.
+
+The resulting Naive Bayes model using the selected variables shows that the model is overfitting the data because the AUC Score with the Train data is 0.9315 but the AUC Score with the Test data is 0.6622, which is about a 27-point difference.  However, the AUC for the Test is significantly above 0.50 of a random guess, so we could consider the Naive Bayes model for churn to be reasonably accurate.
+
+### Random Forest
+
+The Random Forest classifier was used to build a classification model for Churn variable on the training data set. The parameters chosen were, number of trees = 50 and minimum bucket size =10 . The first model was built choosing all the 230 variables and the imputed variables. This resulted in a random forest model with over 200 variables. This model however was not able to detect churn=1 cases in the test data set  in spite of a decent accuracy level of 92.3% in test data set.  
+
+A second model was then built using the top 50 variables based on importance from the first model. This model showed higher accuracy percentage (92.4%). The model was able to detect churn=1 scenarios better than the previous random forest model. 
+Area under the curve (AUC) is used to determine goodness of fit for the model. AUC for Random forest model for Churn in test data is 0.6883. This is a low value, so the model is better than a random pick but it is not a good model.  
+
+### K-Nearest Neighbors
+The Nearest Neighbor K technique was applied in a computational EDA manner to obtain the highestAUC score for churn.  
+
+The variable selection process was based on the smallest deviance of each variable.  This variable selection process resulted in 47 variables out of 230 with deviance of 504.483 based on the Calibration data set.    
+
+The Calibration data set is a 10% random selection of observations from the original data set.  
+
+The resulting knn model used the selected variables and k = 200.  It shows that the model is overfitting the data because the AUC Score with the Train data is 0.9801 but the AUC Score with the Test data is 0.5751, which is about a 30-point difference.  The AUC for the Test is *not* significantly above 0.50 of a random guess, so we could not consider the knn model for upsell to be reasonably accurate.  
+
+### Model Performance
+```{r Churn ROC, echo = FALSE, fig.width = 7, fig.height=4}
+```
+\pagebreak
+
+## Up-Sell
+
+### Naïve Bayes
+The Naïve Bayes technique was applied in a computational EDA manner to obtain the highest AUC score for upsell.  
+
+The variable selection process was based on the smallest deviance of each variable.  This variable selection process resulted in 51 variables out of 230 with deviance of 504.483 based on the Calibration data set.    
+
+The Calibration data set is a 10% random selection of observations from the original data set.  
+
+The resulting Naive Bayes model using the selected variables shows that the model is overfitting the data because the AUC Score with the Train data is 0.9177 but the AUC Score with the Test data is 0.7515, which is about a 16-point difference.  However, the AUC for the Test is significantly above 0.50 of a random guess, so we could consider the Naive Bayes model for upsell to be reasonably accurate.  
+
+
+### Random Forest
+The Random Forest classifier was used to build a classification model for Upsell variable on the training data set. The parameters chosen were number of trees = 50 and minimum bucket size =10 . The first model was built choosing all the 230 variables and the imputed variables. This resulted in a random forest model with over 200 variables. This model however was not able to detect upsell=1 cases in the test data set  in spite of a decent accuracy level of 98.6% in test data set. A second model was then built using the top 25 variables based on importance from the first model. This model showed higher accuracy percentage (95.14% ) in test data set. The model was able to detect upsell=1 scenarios better than the previous random forest model.  
+
+Area under the curve (AUC) is used to determine goodness of fit for the model. AUC for Random forest model for Upsell in test data is 0.8334. This is a moderate value, so the model is not a perfect fit.  
+
+### Logistic Regression
+
+### K-Nearest Neighbors
+The Nearest Neighbor K technique was applied in a computational EDA manner to obtain the highest AUC score for upsell.  
+
+The variable selection process was based on the smallest deviance of each variable.  This variable selection process resulted in 51 variables out of 230 with deviance of 504.483 based on the Calibration data set.    
+
+The Calibration data set is a 10% random selection of observations from the original data set.  
+
+The resulting knn model used the selected variables and k = 200.  It shows that the model is overfitting the data because the AUC Score with the Train data is 0.9878 but the AUC Score with the Test data is 0.7021, which is about a 20-point difference.  However, the AUC for the Test is significantly above 0.50 of a random guess, so we could consider the knn model for upsell to be reasonably accurate.
+
+
+### Model Performance
+```{r Upsell ROC, echo = FALSE, fig.width = 7, fig.height=4}
+```
+\pagebreak
+
+# Comparison of Results
+
+# Conclusions
 
 \pagebreak
 ```{r, echo=FALSE}
