@@ -1,5 +1,27 @@
 ##  upsell_nb_sandra
 
+##################################################################################################
+###       COMMENT FOR NAIVE MODEL FOR UPSELL 
+##################################################################################################
+#The Naïve Bayes technique was applied in a computational EDA manner to obtain the highest 
+#AUC score for upsell.
+#
+#The variable selection process was based on the smallest deviance of each variable.  
+#This variable selection process resulted in 51 variables out of 230 with deviance of 504.483 
+#based on the Calibration data set.  
+#
+#The Calibration data set is a 10% random selection of observations from the original data set.
+#
+#The resulting Naive Bayes model using the selected variables shows that the model is overfitting 
+#the data because the AUC Score with the Train data is 0.9177 but the AUC Score with the 
+#Test data is 0.7515, which is about a 16-point difference.  However, the AUC for the Test 
+#is significantly above 0.50 of a random guess, so we could consider the Naive Bayes model 
+#for upsell to be reasonably accurate.
+#
+##################################################################################################
+##################################################################################################
+
+
 ###   SET DIRECTORY PATH:
 setwd("C:/Users/Sandra/Dropbox/pred_454_team/data")
 
@@ -48,6 +70,7 @@ numericVars <- vars[sapply(dTrain[,vars],class) %in% c('numeric','integer')]
 rm(list=c('d','churn','appetency','upselling'))  
 
 outcome <- 'upselling' 	
+
 pos <- '1' 	
 
 
@@ -147,7 +170,7 @@ for(v in numericVars) {
   liCheck <- 2*((logLikelyhood(dCal[,outcome],dCal[,pi]) -
                    baseRateCheck))
   if(liCheck>=minStep) {
-    print(sprintf("%s, TrainScore: %g",
+    print(sprintf("%s, calibrationScore: %g",
                   pi,liCheck))
     selVars <- c(selVars,pi)
   }

@@ -196,7 +196,17 @@ dTest.AUC
 
 # Title: Plotting 200-nearest neighbor performance 
 # example 6.20
+
+###  TRAIN KNN PREDICTIONS:
 dTrain$kpred <- knnPred(dTrain[,selVars])
+
+#  Create a vector of the predictions to be exporeted to a file:
+churn.knnTrainPred <- dTrain$kpred 
+# save the output
+setwd("C:/Users/Sandra/Dropbox/pred_454_team/models/churn")
+save(list = c('churn.knnTrainPred'), file = 'churn.knnTrainPred.csv')
+
+# plot the predictions
 plotROC(dTrain$kpred,dTrain[,outcome])
 
 install.packages("ggplot2")
@@ -206,7 +216,16 @@ ggplot(data=dTrain) +
                    color=as.factor(churn),linetype=as.factor(churn)))
 
 
+###  CALIBRATION KNN PREDICTIONS:
 dCal$kpred <- knnPred(dCal[,selVars])
+
+#  Create a vector of the predictions to be exporeted to a file:
+churn.knnCalPred <- dCal$kpred
+# save the output
+setwd("C:/Users/Sandra/Dropbox/pred_454_team/models/churn")
+save(list = c('churn.knnCalPred'), file = 'churn.knnCalPred.csv')
+
+# plot the predictions
 plotROC(dCal$kpred,dCal[,outcome])
 
 ggplot(data=dCal) +
@@ -214,27 +233,22 @@ ggplot(data=dCal) +
                    color=as.factor(churn),linetype=as.factor(churn)))
 
 
+###  TEST KNN PREDICTIONS:
 dTest$kpred <- knnPred(dTest[,selVars])
+
+#  Create a vector of the predictions to be exporeted to a file:
+churn.knnTestPred <- dTest$kpred
+# save the output
+setwd("C:/Users/Sandra/Dropbox/pred_454_team/models/churn")
+save(list = c('churn.knnTestPred'), file = 'churn.knnTestPred.csv')
+
+# plot the predictions
 plotROC(dTest$kpred,dTest[,outcome])
 
 ggplot(data=dTest) +
   geom_density(aes(x=kpred,
                    color=as.factor(churn),linetype=as.factor(churn)))
 
-
-
-#### Model Output .RData for Project:
-### upsell_nb_sandra_model <- naiveBayes(as.formula(ff),data=dTrain)
-### upsell_nb_sandra_predictions <-predict(upsell_nb_sandra_model,newdata=dTest,type='raw')[,'TRUE']
-
-# set the director path were the file will be placed
-###   SET DIRECTORY PATH:
-### setwd("C:/Users/Sandra/Dropbox/pred_454_team/models/upsell")
-
-
-# save the output
-### save(list = c('upsell_nb_sandra_model', 'upsell_nb_sandra_predictions'),
-###     file = 'upsell_nb_sandra.RData') 
 
 
 

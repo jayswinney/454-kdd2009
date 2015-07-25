@@ -1,25 +1,4 @@
-##  churn_nb_sandra
-
-##################################################################################################
-###       COMMENT FOR NAIVE MODEL FOR CHURN 
-##################################################################################################
-#The Naïve Bayes technique was applied in a computational EDA manner to obtain the highest AUC 
-#score for churn.
-#
-#The variable selection process was based on the smallest deviance of each variable.  
-#This variable selection process resulted in 47 variables out of 230 with deviance of 291.862 
-#based on the Calibration data set.  
-#
-#The Calibration data set is a 10% random selection of observations from the original data set.
-
-#The resulting Naive Bayes model using the selected variables shows that the model is 
-#overfitting the data because the AUC Score with the Train data is 0.9315 but the AUC Score 
-#with the Test data is 0.6622, which is about a 27-point difference.  However, the AUC for 
-#the Test is significantly above 0.50 of a random guess, so we could consider the Naive Bayes 
-#model for churn to be reasonably accurate.
-#
-##################################################################################################
-##################################################################################################
+##  upsell_knn_sandra
 
 ###   SET DIRECTORY PATH:
 setwd("C:/Users/Sandra/Dropbox/pred_454_team/data")
@@ -68,8 +47,7 @@ numericVars <- vars[sapply(dTrain[,vars],class) %in% c('numeric','integer')]
 
 rm(list=c('d','churn','appetency','upselling'))  
 
-outcome <- 'churn' 	
-
+outcome <- 'upselling' 	
 pos <- '1' 	
 
 
@@ -190,41 +168,88 @@ plotROC <- function(predcol,outcol) {
 }
 
 
-# Title: Using a Naive Bayes package 
-# example 6.24
-library('e1071')
-# with only the selVars the variables:
-ff <- paste('as.factor(',outcome,'>0) ~ ', paste(selVars,collapse=' + '),sep='')
 
-nbmodel <- naiveBayes(as.formula(ff),data=dTrain)
+# Title: Running k-nearest neighbors 
+# example 6.19
+library('class')
 
-dTrain$nbpred <- predict(nbmodel,newdata=dTrain,type='raw')[,'TRUE']
-dCal$nbpred <- predict(nbmodel,newdata=dCal,type='raw')[,'TRUE']
-dTest$nbpred <- predict(nbmodel,newdata=dTest,type='raw')[,'TRUE']
-
-calcAUC(dTrain$nbpred,dTrain[,outcome])
-## [1] 0.9315453  # with selVars
-calcAUC(dCal$nbpred,dCal[,outcome])
-## [1] 0.8739238  # with selVars
-calcAUC(dTest$nbpred,dTest[,outcome])
-## [1] 0.6622495  # with selVars
-
-print(plotROC(dTrain$nbpred,dTrain[,outcome]))
-print(plotROC(dCal$nbpred,dCal[,outcome]))
-print(plotROC(dTest$nbpred,dTest[,outcome]))
-
-#### Model Output .RData for Project:
-churn_nb_sandra_model <- naiveBayes(as.formula(ff),data=dTrain)
-churn_nb_sandra_predictions <-predict(churn_nb_sandra_model,newdata=dTest,type='raw')[,'TRUE']
-
-# set the director path were the file will be placed
-###   SET DIRECTORY PATH:
-setwd("C:/Users/Sandra/Dropbox/pred_454_team/models/churn")
+nK <- 200
+knnTrain <- dTrain[,selVars]  
+knnCl <- dTrain[,outcome]==pos 
 
 
+knnPred <- function(df) { 	
+  knnDecision <- knn(knnTrain,df,knnCl,k=nK,prob=T)
+  ifelse(knnDecision==TRUE, 
+         attributes(knnDecision)$prob,
+         1-(attributes(knnDecision)$prob))
+}
+
+dTrain.AUC <- calcAUC(knnPred(dTrain[,selVars]),dTrain[,outcome])
+dTrain.AUC
+
+dCal.AUC <- calcAUC(knnPred(dCal[,selVars]),dCal[,outcome])
+dCal.AUC
+
+dTest.AUC <- calcAUC(knnPred(dTest[,selVars]),dTest[,outcome])
+dTest.AUC
+
+
+# Title: Plotting 200-nearest neighbor performance 
+# example 6.20
+
+###  TRAIN KNN PREDICTIONS:
+dTrain$kpred <- knnPred(dTrain[,selVars])
+
+#  Create a vector of the predictions to be exporeted to a file:
+upsell.knnTrainPred <- dTrain$kpred 
 # save the output
-save(list = c('churn_nb_sandra_model', 'churn_nb_sandra_predictions'),
-     file = 'churn_nb_sandra.RData')
+setwd("C:/Users/Sandra/Dropbox/pred_454_team/models/upsell")
+save(list = c('upsell.knnTrainPred'), file = 'upsell.knnTrainPred.csv')
+
+# plot the predictions
+plotROC(dTrain$kpred,dTrain[,outcome])
+
+install.packages("ggplot2")
+require("ggplot2")
+ggplot(data=dTrain) +
+  geom_density(aes(x=kpred,
+                   color=as.factor(upselling),linetype=as.factor(upselling)))
+
+
+###  CALIBRATION KNN PREDICTIONS:
+dCal$kpred <- knnPred(dCal[,selVars])
+
+#  Create a vector of the predictions to be exporeted to a file:
+upsell.knnCalPred <- dCal$kpred
+# save the output
+setwd("C:/Users/Sandra/Dropbox/pred_454_team/models/upsell")
+save(list = c('upsell.knnCalPred'), file = 'upsell.knnCalPred.csv')
+
+# plot the predictions
+plotROC(dCal$kpred,dCal[,outcome])
+
+ggplot(data=dCal) +
+  geom_density(aes(x=kpred,
+                   color=as.factor(upselling),linetype=as.factor(upselling)))
+
+
+###  TEST KNN PREDICTIONS:
+dTest$kpred <- knnPred(dTest[,selVars])
+
+#  Create a vector of the predictions to be exporeted to a file:
+upsell.knnTestPred <- dTest$kpred
+# save the output
+setwd("C:/Users/Sandra/Dropbox/pred_454_team/models/upsell")
+save(list = c('upsell.knnTestPred'), file = 'upsell.knnTestPred.csv')
+
+# plot the predictions
+plotROC(dTest$kpred,dTest[,outcome])
+
+ggplot(data=dTest) +
+  geom_density(aes(x=kpred,
+                   color=as.factor(upselling),linetype=as.factor(upselling)))
+
 
 
 

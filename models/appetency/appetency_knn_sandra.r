@@ -196,7 +196,17 @@ dTest.AUC
 
 # Title: Plotting 200-nearest neighbor performance 
 # example 6.20
+
+###  TRAIN KNN PREDICTIONS:
 dTrain$kpred <- knnPred(dTrain[,selVars])
+
+#  Create a vector of the predictions to be exporeted to a file:
+appetency.knnTrainPred <- dTrain$kpred 
+# save the output
+setwd("C:/Users/Sandra/Dropbox/pred_454_team/models/appetency")
+save(list = c('appetency.knnTrainPred'), file = 'appetency.knnTrainPred.csv')
+
+# plot the predictions
 plotROC(dTrain$kpred,dTrain[,outcome])
 
 install.packages("ggplot2")
@@ -206,7 +216,16 @@ ggplot(data=dTrain) +
                    color=as.factor(appetency),linetype=as.factor(appetency)))
 
 
+###  CALIBRATION KNN PREDICTIONS:
 dCal$kpred <- knnPred(dCal[,selVars])
+
+#  Create a vector of the predictions to be exporeted to a file:
+appetency.knnCalPred <- dCal$kpred
+# save the output
+setwd("C:/Users/Sandra/Dropbox/pred_454_team/models/appetency")
+save(list = c('appetency.knnCalPred'), file = 'appetency.knnCalPred.csv')
+
+# plot the predictions
 plotROC(dCal$kpred,dCal[,outcome])
 
 ggplot(data=dCal) +
@@ -214,27 +233,22 @@ ggplot(data=dCal) +
                    color=as.factor(appetency),linetype=as.factor(appetency)))
 
 
+###  TEST KNN PREDICTIONS:
 dTest$kpred <- knnPred(dTest[,selVars])
+
+#  Create a vector of the predictions to be exporeted to a file:
+appetency.knnTestPred <- dTest$kpred
+# save the output
+setwd("C:/Users/Sandra/Dropbox/pred_454_team/models/appetency")
+save(list = c('appetency.knnTestPred'), file = 'appetency.knnTestPred.csv')
+
+# plot the predictions
 plotROC(dTest$kpred,dTest[,outcome])
 
 ggplot(data=dTest) +
   geom_density(aes(x=kpred,
                    color=as.factor(appetency),linetype=as.factor(appetency)))
 
-
-
-#### Model Output .RData for Project:
-### upsell_nb_sandra_model <- naiveBayes(as.formula(ff),data=dTrain)
-### upsell_nb_sandra_predictions <-predict(upsell_nb_sandra_model,newdata=dTest,type='raw')[,'TRUE']
-
-# set the director path were the file will be placed
-###   SET DIRECTORY PATH:
-### setwd("C:/Users/Sandra/Dropbox/pred_454_team/models/upsell")
-
-
-# save the output
-### save(list = c('upsell_nb_sandra_model', 'upsell_nb_sandra_predictions'),
-###     file = 'upsell_nb_sandra.RData') 
 
 
 

@@ -29,11 +29,15 @@ for (n in colnames(train)){
 f <- formula( substr(f,1, nchar(f)-12))
 
 
-upsell_nn_jay = neuralnet(f, data = train, stepmax = 1000,
-                          lifesign.step = 10, hidden = 384, lifesign ='full')
+upsell_nn_jay = neuralnet(f, data = train, stepmax = 2, algorithm =  'backprop',
+                          lifesign.step = 1, hidden = 20, lifesign ='full',
+                          learningrate = 0.02)
+upsell_nn_jay$weights
+
+neuralnet::compute(upsell_nn_jay, val)
 
 save(upsell_nn_jay, file = 'models/upsell/upsell_nn_jay.RData')
 
 
-predict(upsell_nn_jay, train_df)
+
                                    
