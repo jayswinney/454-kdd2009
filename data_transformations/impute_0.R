@@ -24,7 +24,7 @@ churn_[churn_$V1 < 0,] <- 0
 appetency_[appetency_$V1 < 0,] <- 0
 upsell_[upsell_$V1 < 0,] <- 0
 
-# impute mising data with zeros and "missing"
+# impute mising data with zeros and "missing"o
 # also creates missing variable column
 for (i in names(df)){
   vclass <- class(df[,i])
