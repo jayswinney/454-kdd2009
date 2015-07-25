@@ -21,7 +21,7 @@ app_lreg_jay <- cv.glmnet(df_mat[train_ind,],
 
 # make predictions
 app_lreg_jay_predictions <- predict(app_lreg_jay, df_mat[-train_ind,],
-                                      type = 'response', s = 'lambda.min')
+                                      type = 'response', s = 'lambda.min')[,1]
 # save the output
 save(list = c('app_lreg_jay', 'app_lreg_jay_predictions'),
      file = 'models/appetency/app_lreg_jay.RData')

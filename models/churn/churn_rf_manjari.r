@@ -26,7 +26,9 @@ churn.varImp <- importance(churn_rf_manjari)
 varImpPlot(churn_rf_manjari, type=1)
 # make predictions
 
-churn_rf_manjari_predictions <- predict(churn_rf_manjari, newdata=test)
+churn_rf_manjari_predictions <- predict(churn_rf_manjari,
+                                        newdata = test,
+                                        type = 'prob')[,2]
 # Confusion Matrix
 #Confusion Matrix
 table(test$churn, churn_rf_manjari_predictions)
@@ -42,11 +44,15 @@ churn_rf_top_50_manjari <- randomForest(x=train[,selVars], y=factor(train$churn)
 
 # AUC
 # On train data
-churn_rf_top_50_manjari_predictions_train <- predict(churn_rf_top_50_manjari, newdata=train,s = 'lambda.min')
+churn_rf_top_50_manjari_predictions_train <- predict(churn_rf_top_50_manjari,
+                                                     newdata = test,
+                                                     type = 'prob')[,2]
 # Confusion Matri#Confusion Matrix
 table(train$churn, churn_rf_top_50_manjari_predictions_train)
 # On test data
-churn_rf_top_50_manjari_predictions_test <- predict(churn_rf_top_50_manjari, newdata=select(test, -appetency, -upsell),s = 'lambda.min', type='Class')
+churn_rf_top_50_manjari_predictions_test <- predict(churn_rf_top_50_manjari,
+                                                    newdata = test,
+                                                    type = 'prob')[,2]
 # Confusion Matri#Confusion Matrix
 
 table(test$churn, churn_rf_top_50_manjari_predictions_test)

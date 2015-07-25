@@ -14,39 +14,51 @@ source('data_transformations/impute_0.r')
 source('kdd_tools.r')
 df_mat <- make_mat(df)
 
-
+# Model 1 : with all variables , ntree= 50 , nodesize=10, samplesize =(10,30). 
+#Samplesize helps in controlling the sselection of observations at each node,
+# it will be 10 from appetency =0 and 30 from appetency=1
+#with replacement 
 set.seed(512356)
 train_colnames <- colnames(select(train,-churn, -upsell, -appetency))
-
-
 appetency_rf_full_manjari <- randomForest(x=train[,train_colnames], y=factor(train$appetency) ,
-                                     ntree = 10, nodesize = 10, importance = TRUE)
+                                     ntree = 50, nodesize = 10, importance = TRUE, samplesize= c(10,30))
 plot(appetency_rf_full_manjari)
 appetency.varImp <- importance(appetency_rf_full_manjari)
 #appetency.varImp
 varImpPlot(appetency_rf_full_manjari, type=1)
 # make predictions
 
-appetency_rf_full_manjari_predictions <- predict(appetency_rf_full_manjari, newdata=test,s = 'lambda.min')
+appetency_rf_full_manjari_predictions <- predict(appetency_rf_full_manjari,
+                                                 newdata = test,
+                                                 type = 'prob')[,2]
 # Confusion Matrix 
 #Confusion Matrix
 table(test$appetency, appetency_rf_full_manjari_predictions)
-#Accuracy = 0.9816 , The full model did not catch any of the appetency cases in test.This is not an acceptable model
+#Accuracy = 0.9816 , The full model did not catch any of the appetency cases in test.
 
-#Creating Random forest with top 25 variables based on variable importance reduced accuracy of the
-# model . So we will be using the full model itself.
-appetency.selVars <- names(sort(appetency.varImp[,1],decreasing=T))[1:25]
+#Model 2: Creating Random forest with top 50 variables based on variable importance 
+appetency.selVars <- names(sort(appetency.varImp[,1],decreasing=T))[1:50]
 
-appetency_rf_top_25_manjari <- randomForest(x=train[,appetency.selVars], y=factor(train$appetency) ,
-                                        ntree = 10, nodesize = 10, importance = TRUE)
-# AUC 
-appetency_rf_top_25_manjari_predictions <- predict(appetency_rf_top_25_manjari, newdata=test,s = 'lambda.min')
+appetency_rf_top_50_manjari <- randomForest(x=train[,appetency.selVars], y=factor(train$appetency) ,
+                                        ntree = 50, nodesize =2, importance = TRUE, samplesize= c(10,30))
+
+appetency_rf_top_50_manjari_predictions_train <- predict(appetency_rf_top_50_manjari,
+                                                         newdata = test,
+                                                         type = 'prob')[,2]
 # Confusion Matri#Confusion Matrix
-table(test$appetency, appetency_rf_top_25_manjari_predictions)
-#Accuracy = (11541+9)=0.9816 , The model did not catch any of the appetency cases
+table(train$appetency, appetency_rf_top_50_manjari_predictions_train)
 
-appetency_rf_manjari <- appetency_rf_top_25_manjari
-appetency_rf_manjari_predictions <- appetency_rf_top_25_manjari_predictions
+appetency_rf_top_50_manjari_predictions <- predict(appetency_rf_top_50_manjari,
+                                                   newdata = test,
+                                                   type = 'prob')[,2]
+# Confusion Matri#Confusion Matrix
+table(test$appetency, appetency_rf_top_50_manjari_predictions)
+#Accuracy = 0.9816 , The model did not catch any of the appetency cases
+
+## Using the reduced model as it shows the same accuracy as full model
+appetency_rf_manjari <- appetency_rf_top_50_manjari
+appetency_rf_manjari_predictions <- appetency_rf_top_50_manjari_predictions
+
 # save the output
 save(list = c('appetency_rf_manjari', 'appetency_rf_manjari_predictions'),
      file = 'models/appetency/appetency_rf_manjari.RData')

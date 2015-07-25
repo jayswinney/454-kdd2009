@@ -16,10 +16,10 @@ df_mat <- make_mat(df)
 
 churn_lreg_jay <- cv.glmnet(df_mat[train_ind,],
                            factor(train$churn), family = "binomial",
-                           nfolds = 10, type.measure = 'auc')
+                           nfolds = 4, type.measure = 'auc')
 # make predictions
 churn_lreg_jay_predictions <- predict(churn_lreg_jay, df_mat[-train_ind,],
-                                      type = 'response', s = 'lambda.min')
+                                      type = 'response', s = 'lambda.min')[,1]
 
 # save the output
 save(list = c('churn_lreg_jay', 'churn_lreg_jay_predictions'),
