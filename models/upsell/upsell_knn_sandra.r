@@ -1,5 +1,27 @@
 ##  upsell_knn_sandra
 
+##################################################################################################
+###       COMMENT FOR NAIVE MODEL FOR UPSELL 
+##################################################################################################
+#The Nearest Neighbor K technique was applied in a computational EDA manner to obtain the highest 
+#AUC score for upsell.
+#
+#The variable selection process was based on the smallest deviance of each variable.  
+#This variable selection process resulted in 51 variables out of 230 with deviance of 504.483 
+#based on the Calibration data set.  
+#
+#The Calibration data set is a 10% random selection of observations from the original data set.
+#
+#The resulting knn model used the selected variables and k = 200.  It shows that the model is 
+#overfitting the data because the AUC Score with the Train data is 0.9878 but the AUC Score with 
+#the Test data is 0.7021, which is about a 20-point difference.  However, the AUC for the Test 
+#is significantly above 0.50 of a random guess, so we could consider the knn model for upsell 
+#to be reasonably accurate.
+#
+##################################################################################################
+##################################################################################################
+
+
 ###   SET DIRECTORY PATH:
 setwd("C:/Users/Sandra/Dropbox/pred_454_team/data")
 
@@ -48,6 +70,7 @@ numericVars <- vars[sapply(dTrain[,vars],class) %in% c('numeric','integer')]
 rm(list=c('d','churn','appetency','upselling'))  
 
 outcome <- 'upselling' 	
+
 pos <- '1' 	
 
 
@@ -205,7 +228,7 @@ dTrain$kpred <- knnPred(dTrain[,selVars])
 upsell.knnTrainPred <- dTrain$kpred 
 # save the output
 setwd("C:/Users/Sandra/Dropbox/pred_454_team/models/upsell")
-save(list = c('upsell.knnTrainPred'), file = 'upsell.knnTrainPred.csv')
+save(list = c('upsell.knnTrainPred'), file = 'upsell.knnTrainPred.RData')
 
 # plot the predictions
 plotROC(dTrain$kpred,dTrain[,outcome])
@@ -224,7 +247,7 @@ dCal$kpred <- knnPred(dCal[,selVars])
 upsell.knnCalPred <- dCal$kpred
 # save the output
 setwd("C:/Users/Sandra/Dropbox/pred_454_team/models/upsell")
-save(list = c('upsell.knnCalPred'), file = 'upsell.knnCalPred.csv')
+save(list = c('upsell.knnCalPred'), file = 'upsell.knnCalPred.RData')
 
 # plot the predictions
 plotROC(dCal$kpred,dCal[,outcome])
@@ -241,7 +264,7 @@ dTest$kpred <- knnPred(dTest[,selVars])
 upsell.knnTestPred <- dTest$kpred
 # save the output
 setwd("C:/Users/Sandra/Dropbox/pred_454_team/models/upsell")
-save(list = c('upsell.knnTestPred'), file = 'upsell.knnTestPred.csv')
+save(list = c('upsell.knnTestPred'), file = 'upsell.knnTestPred.RData')
 
 # plot the predictions
 plotROC(dTest$kpred,dTest[,outcome])
