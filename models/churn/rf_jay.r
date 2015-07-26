@@ -31,3 +31,4 @@ perf <- performance(pred,'auc')
 
 save(list = c('churn_rf_jay_predictions'),
      file = 'models/churn/rf_jay.RData')
+

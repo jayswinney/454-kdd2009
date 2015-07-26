@@ -26,13 +26,19 @@ f <- 'upsell ~'
 for (n in colnames(train)){
   f <- paste(f, sprintf('%s + ',n), sep = '')
 }
-f <- formula( substr(f,1, nchar(f)-12))
+f <- formula(substr(f,1, nchar(f)-12))
 
 
-upsell_nn_jay = neuralnet(f, data = train, stepmax = 2, algorithm =  'backprop',
-                          lifesign.step = 1, hidden = 20, lifesign ='full',
+upsell_nn_jay = neuralnet(f, data = train, stepmax = 20, rep = 1, algorithm =  'backprop',
+                          lifesign.step = 2, hidden = 4, lifesign ='full',
                           learningrate = 0.02)
-upsell_nn_jay$weights
+#
+compute(upsell_nn_jay, val)
+prediction(upsell_nn_jay)
+
+upsell_nn_jay <- nnet(f, train, size = 50 , MaxNWts=100000)
+
+sum(predict(upsell_nn_jay, val, type = 'raw')[,1])
 
 neuralnet::compute(upsell_nn_jay, val)
 

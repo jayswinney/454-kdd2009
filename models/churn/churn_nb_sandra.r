@@ -209,6 +209,8 @@ calcAUC(dCal$nbpred,dCal[,outcome])
 calcAUC(dTest$nbpred,dTest[,outcome])
 ## [1] 0.6622495  # with selVars
 
+install.packages("ggplot2")
+require("ggplot2")
 print(plotROC(dTrain$nbpred,dTrain[,outcome]))
 print(plotROC(dCal$nbpred,dCal[,outcome]))
 print(plotROC(dTest$nbpred,dTest[,outcome]))
