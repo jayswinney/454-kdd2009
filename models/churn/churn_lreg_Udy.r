@@ -17,9 +17,9 @@ library(caret)
 # read in the data to R
 # I'm using na.stings = '' to replace blanks with na
 # this also helps R read the numerical varaibles as numerical
-setwd('c:/Users/Uduak/Dropbox/pred_454_team')
+setwd('c:/Users/Uduak/Dropbox/pred_454_team/data')
 # choose a script to load and transform the data
-source('data_transformations/impute_0.r')
+# source('data_transformations/impute_0.r')
 df <- read.csv('orange_small_train.data', header = TRUE,
                sep = '\t', na.strings = '')
 # read the target variables
@@ -30,10 +30,6 @@ upsell_ <- read.csv('orange_small_train_upselling.labels', header = FALSE)
 churn_[churn_$V1 < 0,] <- 0
 appetency_[appetency_$V1 < 0,] <- 0
 upsell_[upsell_$V1 < 0,] <- 0
-
-str(df)
-
-# ----
 
 # ---- impute ----
 # impute mising data with zeros and "missing"
@@ -66,6 +62,8 @@ for (i in names(df)){
 df$churn <- churn_$V1
 df$appetency <- appetency_$V1
 df$upsell <- upsell_$V1
+
+#Make the responses factors
 churn <- factor(df$churn)
 appetency <- factor(df$appetency)
 upsell <- factor(df$upsell)
@@ -92,7 +90,7 @@ which(f)
 df_mat <- select(df, -churn, -appetency, -upsell)
 
 
-#Creating separate variables for the different factor
+#Creating separate variables for the different factors
 for (i in names(df_mat)){
   if (class(df_mat[,i]) == 'factor'){
     for(level in unique(df_mat[,i])){
@@ -108,6 +106,8 @@ for (i in names(df_mat)){
 
 #Create input matrix
 df_mat <- data.matrix(df_mat)
+# #Convert to data.frame
+# df_mat.frame <- data.frame(df_mat)
 
 # ----
 
@@ -122,20 +122,23 @@ ChurnTree_exp
 #Focus on Var 126
 summary(Var126)
 logVar126 <- log(abs(Var126))
-ggplot(df) + geom_bar(aes(x=Var126,group=churn,fill=churn),position="fill")
+ggplot(df) + geom_bar(aes(x=Var126,group=churn,fill=churn),position="dodge")
 
 
 # CHURN
-
+# #Convert to data.frame
+df_mat.frame <- data.frame(df_mat)
 df_mat.frame$churn <- df$churn
-
+dim(df_mat.frame)
+anyNA(df_mat.frame)
 ## Decision Tree
 
 # ---- dt_churn ----
 library(rpart)
 library(rpart.plot)
 
-churn_tree <- rpart(churn~.,method = 'class',data = df_mat.frame,
+churn_tree <- rpart(churn~.,
+                    method = 'class',data = df_mat.frame,
                     control=rpart.control(minsplit=40, minbucket=10, cp=0.001))
 
 churn_tree
@@ -292,10 +295,9 @@ tree.churn
 par(mfrow=c(1,1))
 
 #Refitted with statitically significant variables
-lrRf.ChurnRe <- glm(churn~Var126+Var217_dummy_missing+
-                        Var211_dummy_L84s+Var73+Var126_missing+
-                        Var229_dummy_missing+Var113+
-                        Var22_missing+Var65,data = df_mat.frame,family = binomial)
+lrRf.ChurnRe <- glm(churn~Var113+Var126+Var81+Var28+Var73
+                    +Var94+Var189+Var74,
+                    data = df_mat.frame,family = binomial)
 
 summary(lrRf.ChurnRe)
 par(mfrow=c(1,1))
@@ -315,7 +317,7 @@ r.Rf <- (df_mat.frame$churn - fit.Rf)/(sqrt(fit.Rf*(1-fit.Rf)))
 # Sum of squares of these residuals follows a chi-square
 sum(r.Rf^2)
 # Sum of squares of these residuals follows a chi-square
-1- pchisq(50209.03, df=49989)
+1- pchisq(50650.24, df=49991)
 
 # ----
 
@@ -332,12 +334,25 @@ train.frame <- df_mat.frame[train_ind, ]
 test.frame <- df_mat.frame[-train_ind, ]
 tiny.frame <- df_mat.frame[tiny_ind, ]
 
-#logistic regression prediction training data set
+#Logistic regression prediction training data set
 
-lrfit <-glm(churn~Var126+Var73+Var113+Var229_dummy_missing+
-              Var217_dummy_missing,data=train.frame,family = binomial)
+#Selected
+# lrfit <-glm(churn~Var126+Var73+Var113+Var229_dummy_missing+
+#               Var217_dummy_missing,data=train.frame,family = binomial)
+
+#Decision Tree Variables:
+lrfit <-glm(churn~Var126+Var217_dummy_missing+Var211_dummy_L84s+
+              Var73+Var126_missing+Var229_dummy_missing+Var113+
+              Var22_missing+Var65,data=train.frame,family = binomial)
+#LASSO Variables
+# lrfit <-glm(churn~Var7+Var73+Var113+Var126+Var205_dummy_sJzTlal+
+#               Var210_dummy_g5HH+Var212_dummy_NhsEn4L+
+#               Var217_dummy_other+Var218_dummy_cJvF+
+#               Var229_dummy_missing,data=train.frame,family = binomial)
+#RF variables
+# lrfit <-glm(churn~Var113+Var126+Var81+Var28+Var73+
+#               +Var189+Var74,data=train.frame,family = binomial)
 summary(lrfit)
-predict(lrfit,newdata =train.frame,type = "response")
 head(train.frame)
 
 #Checking prediction quality on training
@@ -358,7 +373,7 @@ logit.scores <- prediction(Plogit,train.frame$churn)
 plot(performance(logit.scores,'tpr','fpr'),col='red')
 abline(0,1,lty=8,col='grey')
 logit.auc <- performance(logit.scores,'auc')
-
+logit.auc
 
 #How good is the Logistic model out-sample:
 logit.scores.test <- prediction(PlogitTest,test.frame$churn)
@@ -369,10 +384,60 @@ abline(0,1,lty=8,col='grey')
 logit.auc.test <- performance(logit.scores.test,'auc')
 logit.auc.test
 
-# make predictions
-churn_lreg_udy_predictions <- predict(lrfit, df_mat[-train_ind,],
+# make logsitc regression predictions
+churn_lreg_udy_predictions <- predict(lrfit, df_mat.frame[-train_ind,],
                                       type = 'response')
 
+# churn_svm_udy_predictions <- predict(lrfit, df_mat[-train_ind,],
+#                                       type = 'response')
+
+
 # save the output
-save(list = c('churn_lreg_jay', 'churn_lreg_udy_predictions'),
- file = 'models/churn/churn_lreg_udy.RData')
+setwd('c:/Users/Uduak/Dropbox/pred_454_team')
+save(list = c('lrfit', 'churn_lreg_udy_predictions'),
+     file = 'models/churn/churn_lreg_udy.RData')
+# save(list = c('churn_svm_udy', 'churn_svm_udy_predictions'),
+#      file = 'models/churn/churn_svm_udy.RData')
+
+
+
+###############################
+# SVM:
+###############################
+class(churn)
+svmfit <- svm(as.factor(churn)~Var126+Var217_dummy_missing+Var211_dummy_L84s+
+                Var73+Var126_missing+Var229_dummy_missing+Var113+
+                Var22_missing+Var65,data=train.frame,type="C-classification")
+
+#Checking prediction quality on training set
+Psvm.churn <- predict(svmfit,train.frame)
+table(Psvm.churn,train.frame$churn)
+confusionMatrix(Psvm.churn,train.frame$churn)
+class(Psvm.churn)
+class(churn)
+Psvm.churn <- as.integer(Psvm.churn)
+train.frame$churn <- as.integer(train.frame$churn)
+
+
+#How good is the Logistic model in-sample - ROC and AUC
+svm.scores <- prediction(Psvm.churn,train.frame$churn)
+plot(performance(svm.scores,'tpr','fpr'),col='red')
+abline(0,1,lty=8,col='grey')
+svm.auc <- performance(svm.scores,'auc')
+svm.auc
+
+
+ #Checking prediction quality on test set
+test.frame$churn <- as.integer(test.frame$churn)
+Psvm.churn.test <- predict(svmfit,test.frame)
+confusionMatrix(Psvm.churn.test,test.frame$churn)
+
+#How good is the Logistic model out-sample - ROC and AUC
+Psvm.churn.test <- as.integer(Psvm.churn.test)
+svm.scores.test <- prediction(Psvm.churn.test,test.frame$churn)
+#ROC plot for logistic regression
+plot(performance(svm.scores.test,'tpr','fpr'),col='red')
+abline(0,1,lty=8,col='grey')
+#AUC value
+svm.auc.test <- performance(svm.scores.test,'auc')
+svm.auc.test
