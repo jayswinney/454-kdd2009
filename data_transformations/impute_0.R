@@ -58,7 +58,7 @@ df$upsell <- upsell_$V1
 # in every data transformation script
 # that way we will all be using the same training/testing data
 set.seed(123)
-smp_size <- floor(0.75 * nrow(df))
+smp_size <- floor(0.85 * nrow(df))
 train_ind <- sample(seq_len(nrow(df)), size = smp_size)
 # making a "tiny" data set so I can quickly
 # test r markdown and graphical paramters
@@ -68,3 +68,11 @@ tiny_ind <- sample(seq_len(nrow(df)), size = floor(0.01 * nrow(df)))
 train <- df[train_ind, ]
 test <- df[-train_ind, ]
 tiny <- df[tiny_ind, ]
+
+# create a validation set
+set.seed(123)
+smp_size <- floor(0.85 * nrow(train))
+train_ind <- sample(seq_len(nrow(train)), size = smp_size)
+
+val <- train[-train_ind, ]
+train <- df[train_ind, ]
