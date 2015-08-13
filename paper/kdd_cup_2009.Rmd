@@ -1,15 +1,17 @@
 ---
 title: "KDD Cup 2009 - Customer Relationship Prediction"
-author: "Udy Akpan, Joe Dion, Sandra Duenas, Manjari Srivastava, Jay Swinney"
+author: "by Udy Akpan, Joe Dion, Sandra Duenas, Manjari Srivastava, Jay Swinney"
 date: "Summer Quarter 2015"
-output:
-  pdf_document:
-    fig_caption: yes
+output: 
+  pdf_document: 
     number_sections: yes
-    toc: yes
-    fig_height: 3
-    fig_width: 7
 ---
+
+\centering
+\raggedright
+\newpage
+\tableofcontents
+
 
 
 \pagebreak
@@ -98,7 +100,11 @@ print(xtable(data.frame(Churn =  0.7435 ,
 
 
 ```{r, echo = FALSE, results='asis', message = FALSE, warning=FALSE}
-setwd('c:/Users/Jay/Dropbox/pred_454_team')
+if(dir.exists('c:/Users/jay')){
+  setwd('c:/Users/jay/Dropbox/pred_454_team')
+}else if(dir.exists('c:/Users/uduak')){
+  setwd('c:/Users/uduak/Dropbox/pred_454_team')
+}
 # get the response variables
 churn_ <- read.csv('data/orange_small_train_churn.labels', header = FALSE)
 appetency_ <- read.csv('data/orange_small_train_appetency.labels',
@@ -165,13 +171,13 @@ library(rpart.plot)
 library(rattle)
 
 # load pre-trained models
-load('c:/Users/Jay/Dropbox/pred_454_team/eda.RData')
+load('c:/Users/jay/Dropbox/pred_454_team/eda.RData')
 
 # set document width
 # read in the data to R
 # I'm using na.stings = '' to replace blanks with na
 # this also helps R read the numerical varaibles as numerical
-setwd('c:/Users/Jay/Dropbox/pred_454_team')
+setwd('c:/Users/jay/Dropbox/pred_454_team')
 df <- read.csv('data/orange_small_train.data', header = TRUE,
                sep = '\t', na.strings = '')
 # read the target variables
@@ -740,7 +746,7 @@ When the results were applied to the test data set, the ROC curve shows results 
 
 # Appendix
 
-We would have liked to include the R code to produce the results described in this paper, but amount of code is prohibitively long. For the interested reader, all of the code used to create our results can be found at:  
+We would like to include the R code to produce the results described in this paper, but amount of code is prohibitively long. For the interested reader, all of the code used to create our results can be found at:  
 https://github.com/jayswinney/454-kdd2009  
 
 
