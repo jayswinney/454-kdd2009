@@ -74,5 +74,5 @@ set.seed(123)
 smp_size <- floor(0.85 * nrow(train))
 train_ind <- sample(seq_len(nrow(train)), size = smp_size)
 
-validation <- train[-train_ind, ]
+ensemble_test <- train[-train_ind, ]
 train <- df[train_ind, ]
