@@ -3,7 +3,18 @@
 library(randomForest)
 library(dplyr)
 
-setwd("~/Manjari/Northwestern/R/Workspace/Predict454/KDDCup2009/Dropbox")
+dirs <- c('c:/Users/jay/Dropbox/pred_454_team',
+          'c:/Users/uduak/Dropbox/pred_454_team',
+          'C:/Users/Sandra/Dropbox/pred_454_team',
+          '~/Manjari/Northwestern/R/Workspace/Predict454/KDDCup2009/Dropbox',
+          'C:/Users/JoeD/Dropbox/pred_454_team'
+          )
+
+for (d in dirs){
+  if(dir.exists(d)){
+    setwd(d)
+  }
+}
 
 
 # choose a script to load and transform the data
@@ -14,9 +25,9 @@ source('data_transformations/impute_0.r')
 source('kdd_tools.r')
 df_mat <- make_mat(df)
 
-# Model 1 : with all variables , ntree= 50 , nodesize=10, samplesize =(10,30). 
+# Model 1 : with all variables , ntree= 50 , nodesize=10, samplesize =(10,30).
 #Samplesize helps in controlling the sselection of observations at each node , it will be 10 from appetency =0 and 30 from appetency=1
-#with replacement 
+#with replacement
 set.seed(512356)
 train_colnames <- colnames(select(train,-churn, -upsell, -appetency))
 appetency_rf_full_manjari <- randomForest(x=train[,train_colnames], y=factor(train$appetency) ,
@@ -28,12 +39,12 @@ varImpPlot(appetency_rf_full_manjari, type=1)
 # make predictions
 
 appetency_rf_full_manjari_predictions <- predict(appetency_rf_full_manjari, newdata=test,s = 'lambda.min')
-# Confusion Matrix 
+# Confusion Matrix
 #Confusion Matrix
 table(test$appetency, appetency_rf_full_manjari_predictions)
 #Accuracy = 0.9816 , The full model did not catch any of the appetency cases in test.
 
-#Model 2: Creating Random forest with top 50 variables based on variable importance 
+#Model 2: Creating Random forest with top 50 variables based on variable importance
 appetency.selVars <- names(sort(appetency.varImp[,1],decreasing=T))[1:50]
 
 appetency_rf_top_50_manjari <- randomForest(x=train[,appetency.selVars], y=factor(train$appetency) ,

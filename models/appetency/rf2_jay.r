@@ -2,7 +2,18 @@ library(randomForest)
 library(dplyr)
 library(ROCR)
 
-setwd('c:/Users/Jay/Dropbox/pred_454_team')
+dirs <- c('c:/Users/jay/Dropbox/pred_454_team',
+          'c:/Users/uduak/Dropbox/pred_454_team',
+          'C:/Users/Sandra/Dropbox/pred_454_team',
+          '~/Manjari/Northwestern/R/Workspace/Predict454/KDDCup2009/Dropbox',
+          'C:/Users/JoeD/Dropbox/pred_454_team'
+          )
+
+for (d in dirs){
+  if(dir.exists(d)){
+    setwd(d)
+  }
+}
 
 
 # choose a script to load and transform the data
@@ -31,4 +42,3 @@ perf <- performance(pred,'auc')
 
 save(list = c('appetency_rf_jay_predictions'),
      file = 'models/appetency/rf_jay.RData')
-

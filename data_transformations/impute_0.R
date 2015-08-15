@@ -72,7 +72,7 @@ tiny <- df[tiny_ind, ]
 # create a validation set
 set.seed(123)
 smp_size <- 7500
-train_ind <- sample(seq_len(nrow(train)), size = smp_size)
+ens_ind <- sample(seq_len(nrow(train)), size = smp_size)
 
-ensemble_test <- train[-train_ind, ]
-train <- df[train_ind, ]
+ensemble_test <- train[ens_ind, ]
+train <- df[-ens_ind, ]
