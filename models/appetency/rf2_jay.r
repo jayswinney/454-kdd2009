@@ -23,15 +23,14 @@ source('data_transformations/impute_0.r')
 # from kdd_tools.r
 source('kdd_tools.r')
 
-# over sample the possitive instances of appetency
-train <- rbind(train, train[train$appetency == 1,],
-               train[train$appetency == 1,],
-               train[train$appetency == 1,])
 
 train <- select(train, -upsell, - churn)
 
 appetency_rf_jay <- randomForest(factor(appetency) ~ ., data = train,
-                                 nodesize = 4, ntree = 250)
+                                 nodesize = 4, ntree = 1000,
+                                 strata = factor(train$appetency),
+                                 sampsize = c(608, 608)
+                                 )
 
 
 appetency_rf_jay_predictions <- predict(appetency_rf_jay, test,
@@ -39,6 +38,7 @@ appetency_rf_jay_predictions <- predict(appetency_rf_jay, test,
 
 pred <- prediction(appetency_rf_jay_predictions, test$appetency)
 perf <- performance(pred,'auc')
+perf@y.values
 
 save(list = c('appetency_rf_jay_predictions'),
      file = 'models/appetency/rf_jay.RData')
