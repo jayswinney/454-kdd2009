@@ -15,28 +15,49 @@ output:
 
 
 \pagebreak
+# Summary
 
-# Introduction  
+# Introduction
 
-The KDD Cup 2009 CRM problem is a prediction problem attempting to predict account cancellation (churn), account purchase of additional services (appetency), and account willingness to respond favorably to marketing pitches (up-selling).  
-The prediction of each response (churn, appetency, up selling) is performed separately using classification.  
+Customer Relationship Management (CRM) software first became available in the 90s and has proliferated through companies large and small as a way to track interactions among companies and their customers.  Whether you call Citibank, Verizon, Comcast, Carnival Cruise Lines about that cruise you are planning or Microsoft Technical support to fix a technology problem, or you are the target of an email marketing compaign, it is highly likely that your interaction will be captured in a CRM system.  While the original purpose of CRM systems was to track customer interactions to closure, over time the data about customer interests, preferences and actions have become increasingly valuable and more effort is being made to extract insight to improve business decisions.     
 
-Given that the predictors are unknown and they are generically labeled, data imputation of missing values is done by using zero (0) for numeric variables and 'missing' for categorical variables. An indicator variable for fixed or imputed values is set to 1 to identify those observations and variable combination that was imputed. This was done for some but not all of the analysis, techniques like Naïve Bayes did not require creating 'missing' variables.
+The goal of this modeling exercise is exactly that, the analysis of customer data in a CRM database with an eye towards building models to predict future customer actions. The dataset in question, the KDD Cup 2009 CRM problem is a dataset from Orange, a French Telecom company that was used as part of a KDD competition and consists of 50,000 observations with 230 variables, 190 of which are numerical and 40 of which are categorical.  There are three target variables that are subject to prediction and these variables are binary, marked with either a 1 incidating the outcome occurred or exists for that observation or a 0 indicating that the outcome did not occur or exist for that observation.  The target variables of Churn, Appetency and Upselling as described below; There is no overlap among the three variables, i.e. if a customer has a 1 for churn, they will have 0s for both of the other variables.
 
-Naive models were used to perform initial EDA and helped in model specification by determining the best set of variables to be included in the initial models created with only the training data.  
+Churn: Churn might also be thought of as attribution and in the dataset it is assumed that a 1 value indicates that a customer has stopped using the company's services. Out of the 50,000 observations only 7% have a 1 for churn. 
 
+Appetency: Represents the customers willingness to buy the service. It is assumed that a 1 value indicates a customer is likely willing to use additional services. Only 2% of observations are marked with a 1 for appetency indicating a proclivity for buying.   
+
+Upselling: Represents the likelihood of the customer to upgrade to a more profitable services. It is assumed that a 1 value indicates that a customer is likely to upgrade or be subject to an upselling marketing approach.  About 7% of the observations have a 1 indicating upselling.
+
+#Issues
+
+There are a significant number of issues with the dataset that required solutions before model development could begin.
+
+Number of Variables: As noted above, there are 230 variables in this dataset and therefore building model to required an approach to variable selection and reduction that would produce the most effective collection of variables.
+
+Anonymity:  Several levels of anonymity have been implemented. First the variable names have been replaced by number values, i.e. Var1 to Var290. Secondly, the variable values have been replaced with seemingly non-sensical information for instance categorical vriables have been replaced with series of random characters.  The random series of characters are present in more than one observation so clearly represent some type of categorical identification, but, it's not clear what that is. The actual product or service that the company is offering is also unknown.
+
+Unknown Granularity: There are 50,000 observations in the dataset, however, it is not clear if each observation represents one customer or for instance if observations are targets of marketing campaigns where a single customer can appear more than once. For model building it is assumed that each observation represents a single customer.  
+
+Missing Variables: Many of the observations are missing values for many of the variables. Combined with the anonymity above, it's difficult to determine if data is missing for a legitimate reason, as in possibly the values represent marketing campaigns and a missing value indicates that that customer was not targeted by that campaign.
+
+#Missing Variable Resolution
+
+Given that the predictors are unknown and are generically labeled, a strategy was developed for data imputation.
+
+Numeric variables: Missing values for numeric variable was done by using zero (0) for numeric variables
+
+Categorical variables: Missing values for categorizal variables were replaced with 'missing' and a indicator variable was added to retain visibility with a 1 indicating the value was replaced and a 0 indicating it was not.  
+  
 # The Modeling Problem  
 
-The challenge consists of several classification problems. The goal is to make the best possible predictions of a binary target variable from a number of predictive variables.  Part of the challenge deals with automatic data preparation and modeling in the context of industrial real data. Filtering constant data is the easy part of the challenge.
+The goal is to identify the most effective set of variables and most effective model or combinations of models to predict a future customer's likelihood of churn, appetency or upselling using the avaialbe data. As each variable has a yes or no outcome the models used will be those applicable to binary classification outcomes such as logistic, Support Vector Machines, and Decision Trees.  Each of the target variables have been considered independently and the variable selection process was applied to each target separately.    
 
-Another aspect of the challenge is to beat the in-house system developed by Orange Labs.  It is an opportunity to prove that you can deal with a very large database, including heterogeneous noisy data (numerical and categorical variables), and unbalanced class distributions.   The Orange Labs platform implements several processing methods for instances and variables selection, prediction and indexation based on an efficient model combined with variable selection regularization and model averaging method. The main characteristic of this platform is its ability to scale on very large data sets with hundreds of thousands of instances and thousands of variables. The rapid and robust detection of the variables that have most contributed to the output prediction can be a key factor in a marketing application.
-
-
-Since our work is based on the Small data set of 230 variables, then we need to compare our Score to the Winner of the Slow Track, which are:
+In addition to identifying the best model for each outcome variable, as the dataset has been used in a KDD competition there is a secondary goal to exceed the result of the winning groups from that competiton. The results of those teams below, along with information on the approach used, was considered during model development. The original competition used both a large dataset consisting of 15,000 variables and a smaller dataset with 230 variables. All comparisons will be made against the smaller dataset.  
 
 
-First Place: University of Melbourne
-University of Melbourne entry:  The generally satisfactory model
+First Place: University of Melbourne (The generally satisfactory model)
+
 ```{r, echo = FALSE, results='asis'}
 library(xtable)
 options(xtable.comment = FALSE)
@@ -47,8 +68,7 @@ print(xtable(data.frame(Churn = 0.757,
              caption = 'University of Melbourne'),
       include.rownames=FALSE)
 ```
-First Runner Up: Financial Engineering Group, Inc. Japan
-Stochastic Gradient Boosting
+First Runner Up: Financial Engineering Group, Inc. Japan (Stochastic Gradient Boosting)
 
 ```{r, echo = FALSE, results='asis'}
 print(xtable(data.frame(Churn = 0.7589,
@@ -59,9 +79,7 @@ print(xtable(data.frame(Churn = 0.7589,
       include.rownames=FALSE)
 ```
 
-Second Runner Up: National Taiwan University, Computer Science and Information Engineering
-Fast Scoring on a Large Database using regularized maximum entropy model,
-categorical/numerical balanced AdaBoost and selective Naive Bayes
+Second Runner Up: National Taiwan University, Computer Science and Information Engineering (Fast Scoring on a Large Database using regularized maximum entropy model,categorical/numerical balanced AdaBoost and selective Naive Bayes)
 
 
 ```{r, echo = FALSE, results='asis'}
@@ -73,7 +91,9 @@ print(xtable(data.frame(Churn = 0.7558,
       include.rownames=FALSE)
 ```
 
+DO WE REALLY NEED THIS ONE?
 However, the IBM Research Submission does not appear as a Winner of the Slow Track, it has the submission Score as follows
+
 
 
 ```{r, echo = FALSE, results='asis'}
@@ -85,7 +105,7 @@ print(xtable(data.frame(Churn = 0.7651 ,
       include.rownames=FALSE)
 ```
 
-Evaluation:  The performances are evaluated according to the arithmetic mean of the AUC for the three tasks (churn, appetency. and up-selling). This is what we call "Score".  Larger numerical values indicating higher confidence in positive class membership. The task for the competition is to beat the score of the in house model.
+Evaluation:  The results of the overall modeling exercise will be evaluated according to the arithmetic mean of the AUC for the three prediction tasks (churn, appetency. and up-selling). This is considered the "Score".  Larger numerical values indicate higher confidence that observations in the test set are correctly classified. The goal is to exceed the results of the in-house model which are shown below.  The winning competitors from the KDD competition above only slightly beat the in-house model.
 
 ```{r, echo = FALSE, results='asis'}
 print(xtable(data.frame(Churn =  0.7435 ,
@@ -133,15 +153,9 @@ colnames(df)[c(5,6,9)] <- c('Q1', 'Q2','Positive_Instances')
 print(xtable(data.frame(df), caption = 'Response Variables'))
 
 ```
-The problem requires the prediction of three (3) different response variables, churn, appetency, and up-sell, which are independent binary responses. 
+For the original competition, 2 data sets were used by competitiors, a large dataset consisting of 15,000 variables and a reduced data set of only 230 variables available for competitiors using personal computers rather than larger more powerful systems. As previously noted, the dataset has a number of issues.  The variable names have been replace with generic names, i.e. Var1, Var2, etc, so, for each variable, there is no way to determine what the variable actually represents.  There are many missing values, but imputation of missing values is even more difficult than normal as knowledge about what a variable represents could aid in selecting the imputation method.
 
-The small original data set contains 230 variables of which nothing is known.  The variable names are generic.  There are many missing values but due to the unknown nature of the data, imputation may be narrowed to the variable itself.  The data has been scrambled for anonymity so nothing can be inferred from the values.
-
-It can be clearly seen in Table 6 that the data set has a higher number of Accounts that did not cancel their contract because they have 0 in churn. 
-
-It can be clearly seen in Table 6 that the data set has a higher number of Accounts that did not purchase additional services because they have a 0 in appetency.  
-
-It can be clearly seen in Table 6 that data set has a higher number of Accounts that were not willing to respond favorably to marketing pitches because they have a 0 in up-sell.  
+The table below shows that there are no missing values in the target variables, values are either a 1 or a 0  and a small number of the outcome variables have 1s, indicating the status for that observation, so, for Churn, a 1 indicates that the customer churned or left, for appetency, the 1 indicates a propensity to buy a product or service and for upselling a 1 indicates the customer has acquired additional products or services or has upgraded their products or services.   
 
 \pagebreak
 
@@ -191,7 +205,7 @@ upsell_[upsell_$V1 < 0,] <- 0
 ```
 ## Imputing Missing Data
 
-The most frequent strategy we used to impute missing data was to replace missing numeric values with a 0 and then create a binary variable that indicates missingness. For categorical variables, all classes that represent less than 1% of the total observations were grouped into an "other" category, then a separate missing class was created.The categorical variables were imputed with the word 'missing'.  The new missing indicator variables were set to 1 to indicate that the variable was imputed or to 0 to indicate no imputation.
+The most frequent strategy used to impute missing data was to replace missing numeric values with a 0 and create a new binary variable indicating that the variable in the original dataset was missing. For categorical variables, all classes that represent less than 1% of the total observations were grouped into an "other" category, then a separate missing class was created. The categorical variables were replaced with the word 'missing' and a new variable was added with an indicator value set to 1 to indicate that the variable was imputed or to 0 to indicate no imputation.  Through this method the original variables include values for all observations and separately, a variable with missing values can be used for modeling as well in the case that the variable being present or absent is predictive. 
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
 
@@ -257,12 +271,21 @@ for (i in names(df_mat)){
 df_mat <- data.matrix(df_mat)
 ```
 
+##Variable Selection
+
+As noted previously, with 230 original variables, plus additional dummy variables to represent missing values, and variables with anonymized information, a method was needed to reduce the set of variables to be used in modeling.  Logistic models with Elastic Net Penalty, Decision Trees and Random Forest were run for each of the target variables to identify the most viable variables.
 
 
 ## Appetency
-The first response variable to discuss is appetency. As defined in the task description on the KDD website, appetency is the propensity to buy a service or a product.
+
+The first response variable to discuss is appetency. As defined in the task description on the KDD website, appetency is the propensity to buy a service or a product. Only 2% of observations have a positive inticator for appetency.
+
 
 ### Logistic Regression with Elastic-Net Penalty
+
+LETS ADD A TABLE WITH A COMPARISON OF THE VARIABLES SELECTED ACROSS THE THREE METHODS
+The results from the logistic regression shown below are very promising.  The AUC peaks above 0.8 and does not dramatically decline until nearly all of the variables are removed from the model. This shows that a small number of variables are going to be strong indicators of appetency.
+
 ```{r lreg_app, echo=FALSE, fig.width=5, fig.height=3, fig.align='center'}
 # view the AUC of differnt values of lambda
 plot_df <- data.frame(cvm = app_lreg.cv$cvm, cvup = app_lreg.cv$cvup,
@@ -278,9 +301,10 @@ ggplot(data = plot_df, aes(x = log(lambda), y = cvm)) +
 
 
 ```
-The results from the logistic regression are very promising and interesting. The AUC peaks above 0.8 which is nice to see, but more interestingly the AUC does not dramatically decline till almost all of the variables are removed from the model. This shows that one or two of the variables are very strong indicators of appetency. <br>
 
-Taking a look at the 3 variables in the highly regularized model (right-most vertical line) shows that Var126 and a certain level of Var218 plus an intercept are very indicative of appetency. This is encouraging because it suggest that predicting appetency will be an easier problem.
+
+The table below indicates that with just 3 variables in the highly regularized model (right-most vertical line) Var126 and a couple of levels of dummy variable for Var218 are very indicative of appetency, meaning that predicting appetency should be relatively easy.
+
 ```{r kable_app, results= 'asis', echo=FALSE, message=FALSE, warning=FALSE}
 cv_coefs <- data.frame(
   coeficient = coef(app_lreg.cv, s = 'lambda.1se')[abs(coef(app_lreg.cv,
@@ -309,7 +333,10 @@ p <- ggplot(data.frame(TPR = unlist(perf@y.values),
   attributes(performance(pred, 'auc'))$y.values[[1]]))
 p
 ```
-As shown by this ROC curve constructed on out of sample data, the logistic regression performs very well identifying appetency.
+
+TYPO IN FALSE POSITIVE RATE (Positvie)
+
+The ROC curve below is constructed on out of sample data, showing that the logistic regression model performs very well for appetency.
 
 
 ### Decision Tree
@@ -319,14 +346,18 @@ fancyRpartPlot(app_tree, main = 'Appetency Decision Tree', sub = NULL)
 #app_tree
 ```
 
-The Decision Tree classifier selected 7 variables as the most predictive variables.  The 7 variables are listed below with the highest predictive value listed first.  
-The following configuration: minsplit=40 to set the minimum number of observations per node, minbucket=10 to set the minimum number of total nodes, and cp=0.001 to set the cost complexity factor with a split that must decrease the overall lack of fit by a factor of 0.001.  
+The Decision Tree classifier selected 7 variables as the most predictive and they are listed below in order of predictive ability.    
+
 1.	Var126  5.	Var206  
 2.	Var218  6.	Var223  
 3.	Var204  7.	Var81 
-4.	Var38  
+4.	Var38 
+
+The decision tree was configured as follows: minsplit=40 to set the minimum number of observations per node, minbucket=10 to set the minimum number of total nodes, and cp=0.001 to set the cost complexity factor with a split that must decrease the overall lack of fit by a factor of 0.001.  
 
 ### Random Forest
+
+The Variable Importance plot below for a Random Forest model identified variable 204 & 126 as two of the top three most important variables. 126 shows up in all three models and 204 also shows up in the Decision Tree.
 
 ```{r rf_app, echo=FALSE, fig.width=7, fig.height=4, fig.align='center'}
 plot_df = data.frame(app_rf$importance)
@@ -343,7 +374,10 @@ ggplot(data = plot_df, aes(x = Variable,
   theme(axis.text.y = element_text(colour = 'black')) +
   ggtitle('Variable Importance Appetency')
 ```
-An interesting take away from this plot is that the random forest identified variable 226 & 126 as two of the top three most important variables. This echos the output from the logistic regression and further confirms that these are important variables. However the random forest did not perform nearly as well as the regularized logistic regression, this is because the random forest is severely over-fit, it will need significant tuning before it is on par with the regularized logistic regression.
+
+Overall, Random Forest does not perform nearly as well as the regularized logistic regression, as the model is severely over-fit, and will need significant tuning before it reaches the level of the regularized logistic regression model.
+
+WHAT CAN WE PUT IN TO SHOW IT'S OVERFIT; ADD THE ROC CURVE FOR RANDOM FOREST
 
 
 ```{r rf_app_perf, echo=FALSE, fig.width=3, fig.height=3, fig.align='center', eval = FALSE}
@@ -364,21 +398,23 @@ p
 
 ### K-Nearest Neighbors & Naïve Bayes
 
+IS THERE A LIST OF VARIABLES IDENTIFIED HERE?
+
 The variable selection process for appetency was based on the smallest deviance of each variable.  This variable selection process resulted in 31 variables out of 230 with deviance of 186.294 or less based on the Calibration data set.  The Calibration data set is a 10% random selection of observations from the original data set.  
 
+###comparison of Variables Identified by Each Method
 
-
+WILL ADD A TABLE WITH THE VARIABLES EACH METHOD SELECTED 
 
 
 ## Churn
 
-The challenge for the KKD cup 2009 consisted of predicting 3 variables from the same data set. This paper will focus on one variable at a time starting with churn.
+The next target variable to be evaluated is Churn, which is the likelihood that a customer will discontinue using the goods and services of the company.  7% of observations have a value indicating that the customer has churned. As with appetency, logistic regression with an elastic net penalty, a Decision Tree and Random Forest model were all applied in order to select the most useful variables.
 
 ### Logistic Regression with Elastic-Net Penalty
 
-A useful technique for understanding which variables have predictive power is to apply logistic regression with a regularization term. In this case elastic-net penalty is used to explore the predictive importance of the variables.
+Relative to appetency, the Logistic Regression model did not perform nearly as well with an AUC score in the mid 70s compared to 80 for the appetency model. Furthermore, the regularized and cross validated model selected 155 variables, many of which are the dummy variables created to indicate that variables were missing. 
 
-http://www.stanford.edu/~hastie/glmnet/glmnet_alpha.html
 
 ```{r lreg_churn, echo=FALSE, fig.width=5, fig.height=3, fig.align='center'}
 # view the Area Under the Curve for different values of lambda.
@@ -394,10 +430,9 @@ ggplot(data = plot_df, aes(x = log(lambda), y = cvm)) +
   ylab('AUC') + ggtitle('Cross Validation Curve Logistic Regression')
 
 ```
-This plot shows that not all the variables are useful for classification. Two vertical lines in this plot represent the model with the best performance and the most regularized model within one standard deviation of the top performer. Performance is measured on out of sample data. The regularized and cross validated logistic regression selected a model with 155 non-zero variables
-<br>
 
-Some of the variables selected by the regularized logistic regression are in the table below with their coefficients. Only selected variables are shown for brevity.
+For brevity, a small subset of the variables selected are displayed below with their coefficients, note that most of the variables selected are the dummy variables indicating that a value is present or absent.
+
 ```{r kable_churn, results= 'asis', echo=FALSE, message=FALSE, warning=FALSE}
 cv_coefs <- data.table(variable = row.names(coef(churn_lreg.cv))[
                           abs(as.vector(coef(churn_lreg.cv))) > 1e-5],
@@ -412,12 +447,16 @@ kable(cv_coefs[variable %like% '26'],
 
 ### Decision Tree
 
+The Decision Tree model for churn is shown below. Of particular importance, variables 126 and 226 show up in more than one split and these variables were also identified as important in the logistic model above.
+
 ```{r dt_churn, echo=FALSE, fig.width=7, fig.height=3.5, fig.align='center'}
 fancyRpartPlot(churn_tree, main = 'Churn Decision Tree', sub = NULL)
 ```
-The results from the decision tree give an indication of how useful each of the variables are at predicting churn. This tree is fairly shallow, so any of the variables that made it into the tree will most likely show up in other models that give some indication of variable importance. One interesting thing to not about this tree is that variables 126 and 226 both show up twice in the tree, confirming what has been seen from the logistic regression with elastic net penalty and the random forest variable importance in the next section.
+
 
 ### Random Forest
+
+While the Random Forest model performs very poorly, indicating and ROC value of just over .6, by looking at the Variable Importance chart, Var226 and Var126 show up again, indicating that these are likely to be highly predictive variables.
 
 ```{r rf_churn,echo=FALSE, fig.width=7, fig.height=3.5, fig.align='center'}
 plot_df = data.frame(churn_rf$importance)
@@ -432,7 +471,7 @@ ggplot(data = plot_df, aes(x = Variable, y = MeanDecreaseGini)) +
   theme(axis.text.y = element_text(colour = 'black')) +
   ggtitle('Varible Importance Churn')
 ```
-With the random forest as with the decision tree and logistic regression Var226 has shown to be an important indicator of churn. Variable 204 also shows up high in the variable importance plot from the random forest and in the single decision tree from the previous section.
+
 
 ```{r, echo=FALSE, fig.width=3, fig.height=3, fig.align='center'}
 yhat <- predict(churn_rf, select(test, -appetency, -upsell), type = 'prob')
@@ -449,7 +488,7 @@ p <- ggplot(data.frame(TPR = unlist(perf@y.values),
   attributes(performance(pred, 'auc'))$y.values[[1]]))
 p
 ```
-The accuracy of the random forest leaves something to be desired, there is clearly more work to do. It is not displayed here, but the random forest fit extremely well to in-sample data, this indicates that there is more work to be done to combat over-fitting. Options include changing the requirements for leaf and split sizes and trying the random forest with a subset of variables such as the ones selected by regularized logistic regression.
+The ROC curve above is on the out of sample data and performs very poorly, although the ROC curve on the in sample data, which is not displayed here, performed very well. This indicates that the model is overfit and will require additional tuning. Options include changing the requirements for leaf and split sizes and trying the random forest with a subset of variables such as the ones selected by regularized logistic regression.
 
 ### K-Nearest Neighbors & Naïve Bayes
 
@@ -457,7 +496,8 @@ The variable selection process for churn was based on the smallest deviance of e
 
 
 ## Up-Sell
-The last response variable to analyze is up-sell. As defined in the task description, up-selling can imply selling something additional, or selling something that is more profitable or otherwise preferable for the seller instead of the original sale.
+
+The last response variable to be evaluated is up-sell. Up-selling indicates that the customer has purchased additional goods and services or has upgraded to a higher level of goods and services. 7% of the observations have a positive indicator for up-sell.
 
 ### Logistic Regression with Elastic-Net Penalty
 ```{r lreg_upsell, echo=FALSE, fig.width=5, fig.height=3, fig.align='center'}
@@ -473,7 +513,7 @@ ggplot(data = plot_df, aes(x = log(lambda), y = cvm)) +
   geom_vline(xintercept = log(upsell_lreg.cv$lambda.1se), linetype = 3, size = 1) +
   ylab('AUC') + ggtitle('Cross Validation Curve Logistic Regression')
 ```
-The results from the regularized logistic regression are both promising and somewhat disappointing at the same time. The plot shows that comparable performance can be achieved by removing all but about 80 variables, but unfortunately the regularization does not appear to yield much in the way of performance gain.
+The results from the regularized logistic regression show an AUC score comparable to appetecy in the .80 range, however with 80 remaining variables in the model. Regularization does not appear to yield much performance gain.
 
 
 ```{r lreg_upsell_coefs, eval=FALSE, echo=FALSE}
@@ -489,13 +529,15 @@ row.names(cv_coefs) <- row.names(coef(upsell_lreg.cv, s = 'lambda.1se'))[
 fancyRpartPlot(upsell_tree, main = 'Up-Sell Decision Tree', sub = NULL)
 ```
 
-A number of control options  were used for rpart() -, namely minsplit to set the minimum number of observations per node, minbucket - minimum number of total nodes , cp - split must decrease the overall lack of fit by a factor of 0.001 (cost complexity factor). It was observed that Var 126 and Var 28 were chosen and always had a high importance.These variables probably have good predictive value for up-sell.
+The Decision Tree identified Var126 and Var28 as having high importance.These variables likely have good predictive value for up-sell. Control options used for the decision tree include: minsplit set the minimum number of observations per node, minbucket to minimum number of total nodes , cp - split must decrease the overall lack of fit by a factor of 0.001 (cost complexity factor). 
 
 ```{r, eval=FALSE, echo=FALSE}
 summary(upsell_tree)
 ```
 
 ### Random Forest
+
+The Random Forest classifier selected nearly 200 predictor variables as having significant predictive value for up-sell, which does not help in reducing the number of variables for modeling. The Variable Importance plot below does includ Var126 which shows as an important variable in the Decision tree.
 ```{r rf_upsell, echo=FALSE, fig.width=7, fig.height=4, fig.align='center'}
 plot_df = data.frame(churn_rf$importance)
 plot_df$Variable <- factor(row.names(plot_df))
@@ -512,11 +554,11 @@ p
 ```
 
 
-The Random Forest classifier selects close to 200 predictor variables as having significant predictive value for up-sell. This is a very large number.  We do see that the mean decrease in Gini Index is highest on including Var 126. This matches with the results from Decision tree that Var 126 has a higher predictor value.
 
 ### K-Nearest Neighbors & Naïve Bayes
 
 The variable selection process for up-sell was based on the smallest deviance of each variable.  This variable selection process resulted in 51 variables out of 230 with deviance of 504.483 or less based on the Calibration data set.  The Calibration data set is a 10% random selection of observations from the original data set.  
+  
   
 
 
