@@ -56,35 +56,38 @@ d$appetency <- appetency$V1
 
 ###   CREATING TRAIN, CALIBRATION, AND TEST DATA SETS
 # get the index for training/testing data
+# this portion of the code should be copied exactly
+# in every data transformation script
+# that way we will all be using the same training/testing data
 set.seed(123)
-smp_size <- floor(0.85 * nrow(df))
-train_ind <- sample(seq_len(nrow(df)), size = smp_size)
-# making a "tiny" data set so I can quickly
-# test r markdown and graphical paramters
-# this will be removed in the submitted version
-tiny_ind <- sample(seq_len(nrow(df)), size = floor(0.01 * nrow(df)))
-# split the data
-train <- df[train_ind, ]
-test <- df[-train_ind, ]
-tiny <- df[tiny_ind, ]
-
-# create a validation set
+smp_size <- floor(0.70 * nrow(d))
+test_ind <- seq_len(nrow(d))
+train_ind <- sample(test_ind, size = smp_size)
+# remove train observations from test
+test_ind <- test_ind[! test_ind %in% train_ind]
+# create an ensemble test set
 set.seed(123)
-smp_size <- 7500
-train_ind <- sample(seq_len(nrow(train)), size = smp_size)
+smp_size <- floor(0.15 * nrow(d))
+ens_ind <- sample(test_ind, size = smp_size)
+# remove ensemble observations from test
+test_ind <- test_ind[! test_ind %in% ens_ind]
+# partition the data
+ensemble_test <- d[ens_ind, ]
+train <- d[train_ind, ]
+test <- d[test_ind, ]
 
-ensemble_test <- train[-train_ind, ]
-train <- df[train_ind, ]
+tiny_ind <- sample(seq_len(nrow(d)), size = floor(0.10 * nrow(d)))
+dCal <- d[tiny_ind, ]
 
 
 ###  SETTING OTHER VARIABLES:
 outcomes=c('churn','appetency','upselling')
 
-vars <- setdiff(colnames(dTrain), c(outcomes,'rgroup'))
+vars <- setdiff(colnames(train), c(outcomes,'rgroup'))
 
-catVars <- vars[sapply(dTrain[,vars],class) %in% c('factor','character')]
+catVars <- vars[sapply(train[,vars],class) %in% c('factor','character')]
 
-numericVars <- vars[sapply(dTrain[,vars],class) %in% c('numeric','integer')]
+numericVars <- vars[sapply(train[,vars],class) %in% c('numeric','integer')]
 
 rm(list=c('d','churn','appetency','upselling'))
 
@@ -111,9 +114,9 @@ mkPredC <- function(outCol,varCol,appCol) {
 # example 6.5
 for(v in catVars) {
   pi <- paste('pred',v,sep='')
-  dTrain[,pi] <- mkPredC(dTrain[,outcome],dTrain[,v],dTrain[,v])
-  dCal[,pi] <- mkPredC(dTrain[,outcome],dTrain[,v],dCal[,v])
-  dTest[,pi] <- mkPredC(dTrain[,outcome],dTrain[,v],dTest[,v])
+  train[,pi] <- mkPredC(train[,outcome],train[,v],train[,v])
+  dCal[,pi] <- mkPredC(train[,outcome],train[,v],dCal[,v])
+  test[,pi] <- mkPredC(train[,outcome],train[,v],test[,v])
 }
 
 
@@ -128,10 +131,10 @@ calcAUC <- function(predcol,outcol) {
 
 for(v in catVars) {
   pi <- paste('pred',v,sep='')
-  aucTrain <- calcAUC(dTrain[,pi],dTrain[,outcome])
+  aucTrain <- calcAUC(train[,pi],train[,outcome])
   if(aucTrain>=0.8) {
     aucCal <- calcAUC(dCal[,pi],dCal[,outcome])
-    aucTest <- calcAUC(dTest[,pi],dTest[,outcome])
+    aucTest <- calcAUC(test[,pi],test[,outcome])
     print(sprintf("%s, trainAUC: %4.3f calibrationAUC: %4.3f  testAUC: %4.3f",
                   pi,aucTrain,aucCal,aucTest))
   }
@@ -148,13 +151,13 @@ mkPredN <- function(outCol,varCol,appCol) {
 
 for(v in numericVars) {
   pi <- paste('pred',v,sep='')
-  dTrain[,pi] <- mkPredN(dTrain[,outcome],dTrain[,v],dTrain[,v])
-  dTest[,pi] <- mkPredN(dTrain[,outcome],dTrain[,v],dTest[,v])
-  dCal[,pi] <- mkPredN(dTrain[,outcome],dTrain[,v],dCal[,v])
-  aucTrain <- calcAUC(dTrain[,pi],dTrain[,outcome])
+  train[,pi] <- mkPredN(train[,outcome],train[,v],train[,v])
+  test[,pi] <- mkPredN(train[,outcome],train[,v],test[,v])
+  dCal[,pi] <- mkPredN(train[,outcome],train[,v],dCal[,v])
+  aucTrain <- calcAUC(train[,pi],train[,outcome])
   if(aucTrain>=0.55) {
     aucCal <- calcAUC(dCal[,pi],dCal[,outcome])
-    aucTest <- calcAUC(dTest[,pi],dTest[,outcome])
+    aucTest <- calcAUC(test[,pi],test[,outcome])
     print(sprintf("%s, trainAUC: %4.3f calibrationAUC: %4.3f TestAUC: %4.3f",
                   pi,aucTrain,aucCal,aucTest))
   }
@@ -217,33 +220,30 @@ library('e1071')
 # with only the selVars the variables:
 ff <- paste('as.factor(',outcome,'>0) ~ ', paste(selVars,collapse=' + '),sep='')
 
-nbmodel <- naiveBayes(as.formula(ff),data=dTrain)
+nbmodel <- naiveBayes(as.formula(ff),data=train)
 
-dTrain$nbpred <- predict(nbmodel,newdata=dTrain,type='raw')[,'TRUE']
+train$nbpred <- predict(nbmodel,newdata=train,type='raw')[,'TRUE']
 dCal$nbpred <- predict(nbmodel,newdata=dCal,type='raw')[,'TRUE']
-dTest$nbpred <- predict(nbmodel,newdata=dTest,type='raw')[,'TRUE']
+test$nbpred <- predict(nbmodel,newdata=test,type='raw')[,'TRUE']
 
-calcAUC(dTrain$nbpred,dTrain[,outcome])
+calcAUC(train$nbpred,train[,outcome])
 ## [1] 0.9618698  # with selVars
 calcAUC(dCal$nbpred,dCal[,outcome])
 ## [1] 0.9128786? with selVars
-calcAUC(dTest$nbpred,dTest[,outcome])
+calcAUC(test$nbpred,test[,outcome])
 ## [1] 0.7624391 with selVars
 
-print(plotROC(dTrain$nbpred,dTrain[,outcome]))
+print(plotROC(train$nbpred,train[,outcome]))
 print(plotROC(dCal$nbpred,dCal[,outcome]))
-print(plotROC(dTest$nbpred,dTest[,outcome]))
+print(plotROC(test$nbpred,test[,outcome]))
 
 #### Model Output .RData for Project:
-appetency_nb_sandra_model <- naiveBayes(as.formula(ff),data=dTrain)
+appetency_nb_sandra_model <- naiveBayes(as.formula(ff),data=train)
 appetency_nb_sandra_predictions <-predict(
-  appetency_nb_sandra_model,newdata=dTest,type='raw')[,'TRUE']
+  appetency_nb_sandra_model,newdata=test,type='raw')[,'TRUE']
 
 # set the director path were the file will be placed
 ###   SET DIRECTORY PATH:
-setwd("C:/Users/Sandra/Dropbox/pred_454_team/models/appetency")
-
-
 # save the output
 save(list = c('appetency_nb_sandra_model', 'appetency_nb_sandra_predictions'),
-     file = 'appetency_nb_sandra.RData')
+     file = 'models/appetency/appetency_nb_sandra.RData')
