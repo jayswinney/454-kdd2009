@@ -3,7 +3,18 @@
 library(neuralnet)
 library(dplyr)
 
-setwd('c:/Users/Jay/Dropbox/pred_454_team')
+dirs <- c('c:/Users/jay/Dropbox/pred_454_team',
+          'c:/Users/uduak/Dropbox/pred_454_team',
+          'C:/Users/Sandra/Dropbox/pred_454_team',
+          '~/Manjari/Northwestern/R/Workspace/Predict454/KDDCup2009/Dropbox',
+          'C:/Users/JoeD/Dropbox/pred_454_team'
+          )
+
+for (d in dirs){
+  if(dir.exists(d)){
+    setwd(d)
+  }
+}
 
 # using the impute 0 method
 source('data_transformations/impute_0.r')
@@ -43,7 +54,3 @@ sum(predict(upsell_nn_jay, val, type = 'raw')[,1])
 neuralnet::compute(upsell_nn_jay, val)
 
 save(upsell_nn_jay, file = 'models/upsell/upsell_nn_jay.RData')
-
-
-
-                                   

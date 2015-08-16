@@ -4,7 +4,18 @@
 library(glmnet)
 library(ROCR)
 
-setwd('c:/Users/Jay/Dropbox/pred_454_team')
+dirs <- c('c:/Users/jay/Dropbox/pred_454_team',
+          'c:/Users/uduak/Dropbox/pred_454_team',
+          'C:/Users/Sandra/Dropbox/pred_454_team',
+          '~/Manjari/Northwestern/R/Workspace/Predict454/KDDCup2009/Dropbox',
+          'C:/Users/JoeD/Dropbox/pred_454_team'
+          )
+
+for (d in dirs){
+  if(dir.exists(d)){
+    setwd(d)
+  }
+}
 
 
 # choose a script to load and transform the data
@@ -28,24 +39,23 @@ df$Var125_81 <- df$Var125 * df$Var81
 # create a matrix
 df_mat <- make_mat(df)
 
-new_names <- paste(colnames(select(df, 1:174)), '_squared', sep ='')
-
 upsell_lreg_jay <- cv.glmnet(df_mat[train_ind,],
                            factor(train$upsell), family = "binomial",
                            nfolds = 4, type.measure = 'auc')
 
-coef.glmnet(upsell_lreg_jay, s ='lambda.min')
+# coef.glmnet(upsell_lreg_jay, s ='lambda.min')
 
 plot(upsell_lreg_jay)
 
 # make predictions
-upsell_lreg_jay_predictions <- predict(upsell_lreg_jay, df_mat[-train_ind,],
+upsell_lreg_jay_predictions <- predict(upsell_lreg_jay, df_mat[test_ind,],
                                       type = 'response', s = 'lambda.min')[,1]
 
 pred <- prediction(upsell_lreg_jay_predictions, test$upsell)
 perf <- performance(pred,'auc')
-perf@alpha.values
+perf@y.values
 
 # save the output
 save(list = c('upsell_lreg_jay', 'upsell_lreg_jay_predictions'),
      file = 'models/upsell/upsell_lreg_jay.RData')
+

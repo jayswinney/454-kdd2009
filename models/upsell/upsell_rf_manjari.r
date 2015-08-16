@@ -3,7 +3,18 @@
 library(randomForest)
 library(dplyr)
 
-setwd("~/Manjari/Northwestern/R/Workspace/Predict454/KDDCup2009/Dropbox")
+dirs <- c('c:/Users/jay/Dropbox/pred_454_team',
+          'c:/Users/uduak/Dropbox/pred_454_team',
+          'C:/Users/Sandra/Dropbox/pred_454_team',
+          '~/Manjari/Northwestern/R/Workspace/Predict454/KDDCup2009/Dropbox',
+          'C:/Users/JoeD/Dropbox/pred_454_team'
+          )
+
+for (d in dirs){
+  if(dir.exists(d)){
+    setwd(d)
+  }
+}
 
 
 # choose a script to load and transform the data
@@ -26,7 +37,7 @@ varImpPlot(upsell_rf_full_manjari, type=1)
 # make predictions
 
 upsell_rf_full_manjari_predictions <- predict(upsell_rf_full_manjari, newdata=test,s = 'lambda.min')
-# Confusion Matrix 
+# Confusion Matrix
 #Confusion Matrix
 table(test$upsell, upsell_rf_full_manjari_predictions)
 #Accuracy = 0.9392
@@ -56,7 +67,7 @@ table(test$upsell, upsell_rf_top_25_manjari_predictions)
 #upsell.selVars <- names(sort(upsell.varImp[,1],decreasing=T))[1:50]
 #upsell_rf_top_50_manjari <- randomForest(x=train[,upsell.selVars], y=factor(train$upsell) ,
 #                                         ntree = 10, nodesize = 10, importance = TRUE)
-# AUC 
+# AUC
 #upsell_rf_top_50_manjari_predictions <- predict(upsell_rf_top_50_manjari, newdata=test,s = 'lambda.min')
 # Confusion Matri#Confusion Matrix
 #table(test$upsell, upsell_rf_top_50_manjari_predictions)
