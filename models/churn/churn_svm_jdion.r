@@ -1,16 +1,16 @@
 ##  churn_svm_jdion
 
 ##################################################################################################
-###       COMMENT FOR SUPPORT VECTOR MACHINE MODEL FOR CHURN 
+###       COMMENT FOR SUPPORT VECTOR MACHINE MODEL FOR CHURN
 ##################################################################################################
 #
 #
-#The variable selection process started with the variables selected by the random forrest as being 
+#The variable selection process started with the variables selected by the random forrest as being
 #the strongest and then do to performance issues, was reduced to only the 4 strongest variables.
 #
-#Training the model was also taking as long as an hour for the training data set as well as 
+#Training the model was also taking as long as an hour for the training data set as well as
 #even a small subset of variables, so, a separate dataset of 20% of the observations was created
-#for the SVM model. 
+#for the SVM model.
 #
 #When the results were applied to the test dataset, the ROC curve shows results that don't differ
 #signifcantly from a random model. The model herein relies on the radial kernel with a cost of 10.
@@ -24,32 +24,43 @@ library(kernlab)
 library(e1071)
 library(ROCR)
 
-rocplot = function (pred, truth, ...){ 
+rocplot = function (pred, truth, ...){
   predob = prediction(pred,truth)
   perf = performance (predob, "tpr", "fpr")
   plot(perf,...)}
 
 
 ###   SET DIRECTORY PATH:
-setwd("C:/Users/JoeD/Dropbox/pred_454_team/data")
+dirs <- c('c:/Users/jay/Dropbox/pred_454_team',
+          'c:/Users/uduak/Dropbox/pred_454_team',
+          'C:/Users/Sandra/Dropbox/pred_454_team',
+          '~/Manjari/Northwestern/R/Workspace/Predict454/KDDCup2009/Dropbox',
+          'C:/Users/JoeD/Dropbox/pred_454_team'
+          )
+
+for (d in dirs){
+  if(dir.exists(d)){
+    setwd(d)
+  }
+}
 
 ###   READ DATA FILES:
-d <- read.table('orange_small_train.data',  	
+d <- read.table('data/orange_small_train.data',
                 header=T,
                 sep='\t',
-                na.strings=c('NA','')) 	
+                na.strings=c('NA',''))
 
-churn <- read.table('orange_small_train_churn.labels',
-                    header=F,sep='\t') 
-d$churn <- churn$V1 	 
+churn <- read.table('data/orange_small_train_churn.labels',
+                    header=F,sep='\t')
+d$churn <- churn$V1
 
-upselling <- read.table('orange_small_train_upselling.labels',
+upselling <- read.table('data/orange_small_train_upselling.labels',
                         header=F,sep='\t')
-d$upselling <- upselling$V1 	
+d$upselling <- upselling$V1
 
-appetency <- read.table('orange_small_train_appetency.labels',
+appetency <- read.table('data/orange_small_train_appetency.labels',
                         header=F,sep='\t')
-d$appetency <- appetency$V1 
+d$appetency <- appetency$V1
 
 
 ###   CREATE TRAINING, TEST AND TINY DATA SETS (TINY INCREASED TO 20% AND USED FOR TRAINING)
@@ -93,9 +104,9 @@ df[is.na(df[,i]), i] <- 'missing'
 
 ### SVM MODEL TRAINED WITH TINY (20% OF DATASET)
 
-svmfit.opt = svm(churn ~ Var226 + Var204 + Var113 + Var126 
-#+ Var57 + Var197 + Var216  + Var6 + Var81 + Var153 
-#+ Var22 + Var133 + Var28 + Var73 + Var119 + Var38 + Var140 + Var206 + Var134 + Var163 + Var76 + Var25 + Var94 + Var21 + Var160 
+svmfit.opt = svm(churn ~ Var226 + Var204 + Var113 + Var126
+#+ Var57 + Var197 + Var216  + Var6 + Var81 + Var153
+#+ Var22 + Var133 + Var28 + Var73 + Var119 + Var38 + Var140 + Var206 + Var134 + Var163 + Var76 + Var25 + Var94 + Var21 + Var160
 #+ Var189 + Var13 + Var125  + Var149 + Var213
 , data = tiny,  kernel = 'radial', cachesize = 2000, cost=10, decision.values = T)
 
@@ -104,8 +115,7 @@ fitted = attributes(predict(svmfit.opt, test, decision.values = TRUE))$decision.
 
 rocplot(fitted, test$churn , main = "ROC Curve for Churn")
 
-###SAVE RData File 
+###SAVE RData File
 
-save(list = c('svmfit.opt'), file = "C:/Users/JoeD/Dropbox/pred_454_team/models/churn/churn_svm_jdion.RData")
-
-
+save(list = c('svmfit.opt'),
+    file = "models/churn/churn_svm_jdion.RData")

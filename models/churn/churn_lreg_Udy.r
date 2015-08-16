@@ -11,84 +11,37 @@ library(knitr)
 library(ggplot2)
 library(data.table)
 library(caret)
+library(rpart)
+library(rpart.plot)
 # ----
 
 # ---- read_data ----
 # read in the data to R
 # I'm using na.stings = '' to replace blanks with na
 # this also helps R read the numerical varaibles as numerical
-setwd('c:/Users/Uduak/Dropbox/pred_454_team/data')
-# choose a script to load and transform the data
-# source('data_transformations/impute_0.r')
-df <- read.csv('orange_small_train.data', header = TRUE,
-               sep = '\t', na.strings = '')
-# read the target variables
-churn_ <- read.csv('orange_small_train_churn.labels', header = FALSE)
-appetency_ <- read.csv('orange_small_train_appetency.labels', header = FALSE)
-upsell_ <- read.csv('orange_small_train_upselling.labels', header = FALSE)
+dirs <- c('c:/Users/jay/Dropbox/pred_454_team',
+          'c:/Users/uduak/Dropbox/pred_454_team',
+          'C:/Users/Sandra/Dropbox/pred_454_team',
+          '~/Manjari/Northwestern/R/Workspace/Predict454/KDDCup2009/Dropbox',
+          'C:/Users/JoeD/Dropbox/pred_454_team')
 
-churn_[churn_$V1 < 0,] <- 0
-appetency_[appetency_$V1 < 0,] <- 0
-upsell_[upsell_$V1 < 0,] <- 0
-
-# ---- impute ----
-# impute mising data with zeros and "missing"
-# also creates missing variable column
-for (i in names(df)){
-  vclass <- class(df[,i])
-  if(vclass == 'logical'){
-    # some of the variables are 100% missing, they are the only logical class vars
-    # so we can safely remove all logical class vars
-    df[,i] <- NULL
-  }else if(vclass %in% c('integer', 'numeric')){
-    #first check that there are missing variables
-    if(sum(is.na(df[,i])) == 0) next
-    # create a missing variable column
-    df[,paste(i,'_missing',sep='')] <- as.integer(is.na(df[,i]))
-    # fill missing variables with 0
-    df[is.na(df[,i]),i] <- 0
-  }else{
-    # gather infrequent levels into 'other'
-    levels(df[,i])[xtabs(~df[,i])/dim(df)[1] < 0.015] <- 'other'
-    # replace NA with 'missing'
-    levels(df[,i]) <- append(levels(df[,i]), 'missing')
-    df[is.na(df[,i]), i] <- 'missing'
+for (d in dirs){
+  if(dir.exists(d)){
+    setwd(d)
   }
 }
-# ----
+# choose a script to load and transform the data
+source('data_transformations/impute_0.r')
 
-# ---- target_vars ----
-# add the target variables to the data frame
-df$churn <- churn_$V1
-df$appetency <- appetency_$V1
-df$upsell <- upsell_$V1
-
-#Make the responses factors
-churn <- factor(df$churn)
-appetency <- factor(df$appetency)
-upsell <- factor(df$upsell)
-
-# ----
-
-# ---- train_test_mat ----
-# get the index for training/testing data
-set.seed(123)
-smp_size <- floor(0.75 * nrow(df))
-train_ind <- sample(seq_len(nrow(df)), size = smp_size)
-# making a "tiny" data set so I cn quickly test r markdown and graphical paramters
-# this will be removed in the submitted version
-tiny_ind <- sample(seq_len(nrow(df)), size = floor(0.01 * nrow(df)))
-# split the data
-train <- df[train_ind, ]
-test <- df[-train_ind, ]
-tiny <- df[tiny_ind, ]
 
 #check for factor variables
+names(df)
 f <- sapply(df, is.factor)
 which(f)
 
-df_mat <- select(df, -churn, -appetency, -upsell)
 
+#Data set containing predictors only
+df_mat <- select(df, -churn, -appetency, -upsell)
 
 #Creating separate variables for the different factors
 for (i in names(df_mat)){
@@ -107,337 +60,325 @@ for (i in names(df_mat)){
 #Create input matrix
 df_mat <- data.matrix(df_mat)
 # #Convert to data.frame
-# df_mat.frame <- data.frame(df_mat)
-
-# ----
-
-#Exploratory decision Tree (Classification) for churn, appetency and upsell
-require(tree)
-ChurnTree_exp <- tree(churn~.-appetency-upsell,data = df)
-summary(ChurnTree_exp)
-plot(ChurnTree_exp)
-text(ChurnTree_exp,pretty = 0)
-ChurnTree_exp
-
-#Focus on Var 126
-summary(Var126)
-logVar126 <- log(abs(Var126))
-ggplot(df) + geom_bar(aes(x=Var126,group=churn,fill=churn),position="dodge")
-
-
-# CHURN
-# #Convert to data.frame
 df_mat.frame <- data.frame(df_mat)
 df_mat.frame$churn <- df$churn
+names(df_mat.frame)
 dim(df_mat.frame)
-anyNA(df_mat.frame)
-## Decision Tree
 
-# ---- dt_churn ----
+# Create train and test data set for data frame
+
+set.seed(123)
+smp_size <- floor(0.70 * nrow(df_mat.frame))
+test_ind <- seq_len(nrow(df_mat.frame))
+train_ind <- sample(test_ind, size = smp_size)
+# remove train observations from test
+test_ind <- test_ind[! test_ind %in% train_ind]
+# create an ensemble test set
+set.seed(123)
+smp_size <- floor(0.15 * nrow(df_mat.frame))
+ens_ind <- sample(test_ind, size = smp_size)
+# remove ensemble observations from test
+test_ind <- test_ind[! test_ind %in% ens_ind]
+# partition the data
+ensemble_test <- df_mat.frame[ens_ind, ]
+train <- df_mat.frame[train_ind, ]
+test <- df_mat.frame[test_ind, ]
+
+# ----
+#Exploratory decision Tree (Classification) for appetency
 library(rpart)
 library(rpart.plot)
+df_mat.frame$churn <- factor(df_mat.frame$churn)
+churnTree <- rpart(churn~.,method="class",data = df_mat.frame,
+                 control=rpart.control(minsplit=10, minbucket=10, cp=0.001))
+churnTree
+printcp(churnTree)
+plot(churnTree, uniform=TRUE)
+text(churnTree, all=TRUE,cex=0.75, splits=TRUE, use.n=TRUE, xpd=TRUE)
+?predict
+p <- predict(churnTree,newdata=df_mat.frame,type="class")
+table(actual=df_mat.frame$churn,predicted=p)
 
-churn_tree <- rpart(churn~.,
-                    method = 'class',data = df_mat.frame,
-                    control=rpart.control(minsplit=40, minbucket=10, cp=0.001))
+par(mar = c(5, 10, 4, 2) + 0.1)
+barplot(churnTree$variable.importance,horiz=T,las=1, cex.names = 0.75)
+par(mar = c(5, 4, 4, 2) + 0.1)
 
-churn_tree
-summary(churn_tree)
-# ---- plot_tree_churn ----
-rpart.plot(churn_tree, main = 'Churn Decision Tree')
-# ----
 
 #GOF logistic regression using variables from Tree selection
-lrTree.Churn <- glm(churn~Var126+Var217_dummy_missing+Var217_dummy_other+
-                      Var218_dummy_missing+Var211_dummy_L84s+Var211_dummy_Mtgm+
-                      Var73+Var126_missing+Var229_dummy_missing+Var113+
-                      Var221_dummy_zCkv+Var22_missing+Var200_dummy_missing+
-                      Var200_dummy_other+Var214_dummy_missing+Var214_dummy_other+
-                      Var227_dummy_6fzt+Var28+Var125_missing+Var13_missing+
-                      Var65+Var65_missing+Var7_missing+Var74_missing+
-                      Var198_dummy_other+Var207_dummy_Kxdu+Var220_dummy_other+
-                      Var222_dummy_other,data = df_mat.frame, family = binomial)
+lrchurn.tree <- glm(churn~Var126+Var126_missing+Var217_dummy_other+
+                      Var221_dummy_zCkv+Var229_dummy_missing+Var28+
+                      Var65+Var73,data = train, family = binomial)
 
+summary(lrchurn.tree)
 
 #Refitted with statitically significant variables
-lrTree.ChurnRe <- glm(churn~Var126+Var217_dummy_missing+Var211_dummy_L84s+
-                        Var73+Var126_missing+Var229_dummy_missing+
-                        Var113+Var22_missing+Var65,
-                      data = df_mat.frame,family = binomial)
+lrchurn.treeRe <- glm(churn~Var126+Var126_missing+Var217_dummy_other+
+                      Var229_dummy_missing+Var28+
+                      Var73,data = train, family = binomial)
+summary(lrchurn.treeRe)
 
-summary(lrTree.ChurnRe)
+anova(lrchurn.treeRe,lrchurn.tree,test="Chisq")
+
+
 par(mfrow=c(1,1))
-fit <- lrTree.ChurnRe$fitted
-fit
+fit <- lrApp.tree$fitted
 hist(fit)
-par(mfrow=c(2,2))
-plot(lrTree.ChurnRe)
-lrTree.ChurnRe
 par(mfrow=c(1,1))
 
-#################################################
-# Chi-square goodness of fit test
-#################################################
-# Calculate residuals across all individuals
-r.tree <- (df_mat.frame$churn - fit)/(sqrt(fit*(1-fit)))
-# Sum of squares of these residuals follows a chi-square
-sum(r.tree^2)
-#Calculate the p-value from the test
-1- pchisq(50209.03, df=49990)
+# #################################################
+# # Chi-square goodness of fit test
+# #################################################
+# # Calculate residuals across all individuals
+# r.tree <- (df_mat.frame$appetency - fit)/(sqrt(fit*(1-fit)))
+# # Sum of squares of these residuals follows a chi-square
+# sum(r.tree^2)
+# #Calculate the p-value from the test
+# 1- pchisq(65795.97, df=49996)
 
 #Exploratory logistic Regression with LASSO - Udy's code changes
-# ---- lreg_churn ----
+# ---- LASSO_appetency ----
 library(glmnet)
 # regularized logistic regression with LASSO
-churn_lreg <- glmnet(df_mat[train_ind,],
-                     factor(train$churn), alpha=1, family = "binomial")
 
-plot(churn_lreg,xvar="lambda")
+train.glm <- as.matrix(train[-552])
+dim(train.glm)
+churn.LASSO <- glmnet(train.glm,train$churn,alpha=1, family = "binomial")
+
+plot(churn.LASSO,xvar="lambda",label=TRUE)
 grid()
-
 # Show number of selected variables
-churn_lreg
+churn.LASSO
 
 #Use cross validation to select the best lambda (minlambda) and lambda.1se
+#Cross Validated LASSO
+churnCVlasso <- cv.glmnet(train.glm,train$churn)
+#plot(fit.lasso,xvar="dev",label=TRUE)
+plot(churnCVlasso)
+coef(churnCVlasso)
 
-cv.churn_lreg <- cv.glmnet(df_mat[train_ind,],
-                           train$churn, alpha=1)
-plot(cv.churn_lreg)
-coef(cv.churn_lreg) # Gives coefficients lambda.1se
-best_lambda <- cv.churn_lreg$lambda.min
-best_lambda
-
-attach(df_mat.frame)
+# coef(churnCVlasso, s="lambda.1se") # Gives coefficients lambda.1se
+# best_lambda <- churnCVlasso$lambda.1se
+# best_lambda
 
 #GOF logistic regression models LASSO Variables selected
-lrLASSO.churn <- glm(churn~Var7+Var73+Var113+Var126+Var22_missing+
-                       Var28_missing+Var205_dummy_sJzTlal+Var206_dummy_IYzP+
-                       Var210_dummy_g5HH+Var212_dummy_NhsEn4L+
-                       Var217_dummy_other+Var218_dummy_cJvF+
-                       Var218_dummy_missing+Var229_dummy_missing,
-                     data = df_mat.frame, family = binomial)
-summary(lrLASSO.churn)
-par(mfrow=c(2,2))
-plot(lrLASSO.churn)
-par(mfrow=c(1,1))
+names(train)
+lrchurnLASSO <- glm(churn~Var7+Var73+Var113+Var126+Var22_missing+
+                    Var25_missing+Var28_missing+Var126_missing+
+                    Var205_dummy_sJzTlal+Var206_dummy_IYzP+Var210_dummy_g5HH+
+                    Var212_dummy_NhsEn4L+Var217_dummy_other+Var218_dummy_cJvF+
+                    Var218_dummy_missing+Var229_dummy_missing,data = train,
+                  family = binomial)
 
-#Refitted with statitically significant variables
-lrLASSO.churnRe <- glm(churn~Var7+Var73+Var113+Var126+
+summary(lrchurnLASSO)
+# par(mfrow=c(2,2))
+# plot(lrAppLASSO)
+# par(mfrow=c(1,1))
+
+#Refitted after dropping variables that could not be estimated
+lrchurnLASSO1 <- glm(churn~Var7+Var73+Var113+Var126+Var22_missing+
+                       Var28_missing+Var126_missing+
+                       Var205_dummy_sJzTlal+Var206_dummy_IYzP+Var210_dummy_g5HH+
+                       Var212_dummy_NhsEn4L+Var217_dummy_other+Var218_dummy_cJvF+
+                       Var229_dummy_missing,data = train,
+                     family = binomial)
+
+summary(lrchurnLASSO1)
+
+#Refitted with significant variables
+lrchurnLASSO2 <- glm(churn~Var7+Var73+Var113+Var126+Var28_missing+Var126_missing+
                        Var205_dummy_sJzTlal+Var210_dummy_g5HH+
-                       Var212_dummy_NhsEn4L+Var217_dummy_other+
-                       Var218_dummy_cJvF+Var229_dummy_missing,
-                     data = df_mat.frame, family = binomial)
+                       Var212_dummy_NhsEn4L+Var217_dummy_other+Var218_dummy_cJvF+
+                       Var229_dummy_missing,data = train,
+                     family = binomial)
 
-summary(lrLASSO.churnRe)
+summary(lrchurnLASSO2)
+
+
+#Test for better fit between nested models: chi-sq
+anova(lrchurnLASSO2,lrchurnLASSO1,test="Chisq")
+#Test for better fit between nested models: AIC
+AIC(lrchurnLASSO1,lrchurnLASSO2)
+
+
 par(mfrow=c(1,1))
-fit.LASSO <- lrLASSO.churnRe$fitted
-fit.LASSO
-hist(fit)
+fit.LASSO.churn <- lrchurnLASSO2$fitted
+hist(fit.LASSO.churn)
 par(mfrow=c(2,2))
-plot(lrLASSO.churnRe)
-lrLASSO.churnRe
+plot(lrchurnLASSO2)
 par(mfrow=c(1,1))
-
-#################################################
-# Chi-square goodness of fit test for LASSO Variables
-#################################################
-# Calculate residuals across all individuals
-r.LASSO <- (df_mat.frame$churn - fit.LASSO)/(sqrt(fit.LASSO*(1-fit.LASSO)))
-# Sum of squares of these residuals follows a chi-square
-sum(r.LASSO^2)
-#Calculate the p-value from the test
-1- pchisq(49888.49, df=49989)
-
-
-# ----
-
-
-# # view the Area Under the Curve for different values of lambda.
-# plot(churn_lreg.cv)
-# title('Cross Validation Curve Logistic Regression',line =+2.8)
-#
-#
-#
-# cv_coefs <- data.table(variable = row.names(coef(churn_lreg.cv))[
-#   abs(as.vector(coef(churn_lreg.cv))) > 1e-5],
-#   coeficient = coef(churn_lreg.cv)[abs(coef(churn_lreg.cv)) > 1e-5])
-#
-#
-# kable(cv_coefs[variable %like% '26'],
-#       caption = "Variables Selected by Elastic-Net")
-
-
-
 
 ## Random Forest
 ?randomForest
 # ---- rf_churn ----
 library(randomForest)
-set.seed(123)
-churn_rf <- randomForest(churn~.,
-                         data = df_mat.frame,
-                         ntree = 10, nodesize = 10, importance = TRUE)
+set.seed(101)
+churnRf <- randomForest(churn~.,data = train,importance = TRUE)
+churn.important <- importance(churnRf, type = 1, scale = FALSE)
+varImp(churnRf)
 # ----
 # ---- plot_rf_churn ----
-varImpPlot(churn_rf, type = 2, main = 'Variable Importance Churn')
+varImpPlot(churnRf, type = 1, main = 'Variable Importance churn')
+varImpPlot(churnRf, type = 2, main = 'Variable Importance churn')
 
+# write the variable importance to a file that can be read into excel
+fo <- file("rf.txt", "w")
+imp <- importance(churnRf)
+write.table(imp, fo, sep="\t")
+flush(fo)
+close(fo)
 #GOF logistic regression using variables from Tree selection
-lrRf.Churn <- glm(churn~Var113+Var126+Var57+Var81+Var28+Var153+Var73+
-                    Var6+Var133+Var125+Var76+Var134+Var38+Var119+Var94+Var13+
-                    Var140+Var163+Var149+Var189+Var160+Var25+Var123+Var22+
-                    Var112+Var21+Var74+Var109+Var85+Var83,
-                  data = df_mat.frame, family = binomial)
+lrchurnRF <- glm(churn~Var113+Var73+Var126+Var6+Var119+Var153+Var25+Var160+
+                   Var133+Var81+Var112+Var13+Var125+Var109+Var38+
+                   Var210_dummy_g5HH+Var21+Var24+Var123+Var83+Var28+
+                   Var22+Var144+Var85+Var140+Var74+Var134+Var126_missing+
+                   Var76+Var211_dummy_L84s,data = train, family = binomial)
 
-summary(lrRf.Churn)
+summary(lrchurnRF)
 par(mfrow=c(2,2))
 plot(lrRf.Churn)
-tree.churn
 par(mfrow=c(1,1))
 
 #Refitted with statitically significant variables
-lrRf.ChurnRe <- glm(churn~Var113+Var126+Var81+Var28+Var73
-                    +Var94+Var189+Var74,
-                    data = df_mat.frame,family = binomial)
+lrchurnRF1 <- glm(churn~Var113+Var73+Var126+Var6+Var81+Var210_dummy_g5HH+
+                   Var28+Var74+Var126_missing+Var211_dummy_L84s,
+                 data = train, family = binomial)
 
-summary(lrRf.ChurnRe)
-par(mfrow=c(1,1))
-fit.Rf <- lrRf.ChurnRe$fitted
-fit.Rf
-hist(fit.Rf)
-par(mfrow=c(2,2))
-plot(lrRf.ChurnRe)
-lrRf.ChurnRe
-par(mfrow=c(1,1))
+summary(lrchurnRF1)
 
-#################################################
-# Chi-square goodness of fit test for RandomForest Variables
-#################################################
-# Calculate residuals across all individuals
-r.Rf <- (df_mat.frame$churn - fit.Rf)/(sqrt(fit.Rf*(1-fit.Rf)))
-# Sum of squares of these residuals follows a chi-square
-sum(r.Rf^2)
-# Sum of squares of these residuals follows a chi-square
-1- pchisq(50650.24, df=49991)
+#Test for better fit between nested models:
+anova(lrchurnRF1,lrchurnRF,test="Chisq")
+AIC(lrchurnRF1,lrchurnRF)
 
-# ----
 
-# Create train and test data set for data frame
-
-set.seed(123)
-smp_size <- floor(0.75 * nrow(df_mat.frame))
-train_ind <- sample(seq_len(nrow(df_mat.frame)), size = smp_size)
-# making a "tiny" data set so I cn quickly test r markdown and graphical paramters
-# this will be removed in the submitted version
-tiny_ind <- sample(seq_len(nrow(df_mat.frame)), size = floor(0.01 * nrow(df)))
-# split the data
-train.frame <- df_mat.frame[train_ind, ]
-test.frame <- df_mat.frame[-train_ind, ]
-tiny.frame <- df_mat.frame[tiny_ind, ]
-
-#Logistic regression prediction training data set
-
-#Selected
-# lrfit <-glm(churn~Var126+Var73+Var113+Var229_dummy_missing+
-#               Var217_dummy_missing,data=train.frame,family = binomial)
 
 #Decision Tree Variables:
-lrfit <-glm(churn~Var126+Var217_dummy_missing+Var211_dummy_L84s+
-              Var73+Var126_missing+Var229_dummy_missing+Var113+
-              Var22_missing+Var65,data=train.frame,family = binomial)
-#LASSO Variables
-# lrfit <-glm(churn~Var7+Var73+Var113+Var126+Var205_dummy_sJzTlal+
-#               Var210_dummy_g5HH+Var212_dummy_NhsEn4L+
-#               Var217_dummy_other+Var218_dummy_cJvF+
-#               Var229_dummy_missing,data=train.frame,family = binomial)
-#RF variables
-# lrfit <-glm(churn~Var113+Var126+Var81+Var28+Var73+
-#               +Var189+Var74,data=train.frame,family = binomial)
-summary(lrfit)
-head(train.frame)
+lrfitchurnDT <-glm(churn~Var126+Var126_missing+Var217_dummy_other+
+                Var221_dummy_zCkv+Var229_dummy_missing+Var28+Var65+
+                Var73,data=train,family = binomial)
+
+summary(lrfitchurnDT)
 
 #Checking prediction quality on training
-Plogit <- predict(lrfit,newdata =train.frame,type = "response")
-p.churn <- round(Plogit)
+Pchurn <- predict(lrfitchurnDT,newdata =train,type = "response")
+p.churn <- round(Pchurn)
 
 require(e1071)
 require(caret)
-confusionMatrix(p.churn,train.frame$churn)
+confusionMatrix(p.churn,train$churn)
 
 #Checking prediction quality on test
-PlogitTest <- predict(lrfit,newdata=test.frame,type = "response")
-p.churnTest <- round(PlogitTest)
-confusionMatrix(p.churnTest,test.frame$churn)
+PchurnTest <- predict(lrfitchurnDT,newdata=test,type = "response")
+p.churnTest <- round(PchurnTest)
+confusionMatrix(p.churnTest,test$churn)
 
-#How good is the Logistic model in-sample:
-logit.scores <- prediction(Plogit,train.frame$churn)
-plot(performance(logit.scores,'tpr','fpr'),col='red')
+#How good is the Logistic model in-sample (AUC)
+DT.churnscores <- prediction(Pchurn,train$churn)
+plot(performance(DT.churnscores,'tpr','fpr'),col='red')
 abline(0,1,lty=8,col='grey')
-logit.auc <- performance(logit.scores,'auc')
-logit.auc
+DT.churnauc <- performance(DT.churnscores,'auc')
+DT.churnauc
 
-#How good is the Logistic model out-sample:
-logit.scores.test <- prediction(PlogitTest,test.frame$churn)
+#How good is the Logistic model out-sample (AUC)
+DT.churnscores.test <- prediction(PchurnTest,test$churn)
 #ROC plot for logistic regression
-plot(performance(logit.scores.test,'tpr','fpr'),col='red')
+plot(performance(DT.churnscores.test,'tpr','fpr'),col='red')
 abline(0,1,lty=8,col='grey')
 #AUC value
-logit.auc.test <- performance(logit.scores.test,'auc')
-logit.auc.test
+DT.churnauc.test <- performance(DT.churnscores.test,'auc')
+DT.churnauc.test
 
-# make logsitc regression predictions
-churn_lreg_udy_predictions <- predict(lrfit, df_mat.frame[-train_ind,],
-                                      type = 'response')
+#LASSO
+lrchurnLASSO <-glm(churn~Var7+Var73+Var113+Var126+Var28_missing+
+          Var126_missing+Var205_dummy_sJzTlal+Var210_dummy_g5HH+
+          Var212_dummy_NhsEn4L+Var217_dummy_other+Var218_dummy_cJvF+
+          Var229_dummy_missing,data=train,family = binomial)
+
+summary(lrchurnLASSO)
+
+#Checking prediction quality on training
+pchurnLASSO <- predict(lrchurnLASSO,newdata =train,type = "response")
+pLASSO.churn <- round(pchurnLASSO)
+
+require(e1071)
+require(caret)
+confusionMatrix(pLASSO.churn,train$churn)
+
+#Checking prediction quality on test
+churnLASSO.test <- predict(lrchurnLASSO,newdata=test,type = "response")
+p.churnTest <- round(churnLASSO.test)
+confusionMatrix(p.churnTest,test$churn)
+
+#How good is the Logistic model in-sample:
+LASSO.churnscores <- prediction(pchurnLASSO,train$churn)
+plot(performance(LASSO.churnscores,'tpr','fpr'),col='red')
+abline(0,1,lty=8,col='grey')
+LASSO.churnauc <- performance(LASSO.churnscores,'auc')
+LASSO.churnauc
+
+#How good is the Logistic model out-sample:
+LASSO.churnscores.test <- prediction(churnLASSO.test,test$churn)
+#ROC plot for logistic regression
+plot(performance(LASSO.churnscores.test,'tpr','fpr'),col='red')
+abline(0,1,lty=8,col='grey')
+#AUC value
+LASSO.churnauc.test <- performance(LASSO.churnscores.test,'auc')
+LASSO.churnauc.test
+
+
+#Random Forest
+lrchurnRf <-glm(churn~Var113+Var73+Var126+Var6+Var81+Var210_dummy_g5HH+
+                  Var28+Var74+Var126_missing+Var211_dummy_L84s,data=train,
+                family = binomial)
+
+summary(lrchurnRf)
+
+#Checking prediction quality on training
+churnRf.train <- predict(lrchurnRf,newdata =train,type = "response")
+pchurnRf.app <- round(churnRf.train)
+confusionMatrix(pchurnRf.app,train$churn)
+
+#Checking prediction quality on test
+churnRf.test <- predict(lrchurnRf,newdata=test,type = "response")
+p.churnTest <- round(churnRf.test)
+confusionMatrix(p.churnTest,test$churn)
+
+#How good is the Logistic model in-sample:
+churnRf.scores <- prediction(churnRf.train,train$churn)
+plot(performance(churnRf.scores,'tpr','fpr'),col='red')
+abline(0,1,lty=8,col='grey')
+Rf.churnauc <- performance(churnRf.scores,'auc')
+Rf.churnauc
+
+#How good is the Logistic model out-sample:
+Rf.churnscores.test <- prediction(churnRf.test,test$churn)
+#ROC plot for logistic regression
+plot(performance(Rf.churnscores.test,'tpr','fpr'),col='red')
+abline(0,1,lty=8,col='grey')
+#AUC value
+Rf.churnauc.test <- performance(Rf.churnscores.test,'auc')
+Rf.churnauc.test
+
+#plot ROC curves
+?plot.performance
+library(ROCR)
+
+predchurn <- prediction(churnLASSO.test,test$churn)
+
+perfchurn <- performance(predchurn, "tpr", "fpr")
+
+plot(perfchurn, main="ROC of churn")
+
+abline(0,1,lty=8,col='blue')
+
+
+# make logsitic regression predictions
+churn_lreg_udy_predictions <- predict(lrchurnLASSO, test,
+                                    type = 'response')
 
 # churn_svm_udy_predictions <- predict(lrfit, df_mat[-train_ind,],
 #                                       type = 'response')
 
 
 # save the output
-setwd('c:/Users/Uduak/Dropbox/pred_454_team')
-save(list = c('lrfit', 'churn_lreg_udy_predictions'),
-     file = 'models/churn/churn_lreg_udy.RData')
-# save(list = c('churn_svm_udy', 'churn_svm_udy_predictions'),
-#      file = 'models/churn/churn_svm_udy.RData')
-
-
-
-###############################
-# SVM:
-###############################
-class(churn)
-svmfit <- svm(as.factor(churn)~Var126+Var217_dummy_missing+Var211_dummy_L84s+
-                Var73+Var126_missing+Var229_dummy_missing+Var113+
-                Var22_missing+Var65,data=train.frame,type="C-classification")
-
-#Checking prediction quality on training set
-Psvm.churn <- predict(svmfit,train.frame)
-table(Psvm.churn,train.frame$churn)
-confusionMatrix(Psvm.churn,train.frame$churn)
-class(Psvm.churn)
-class(churn)
-Psvm.churn <- as.integer(Psvm.churn)
-train.frame$churn <- as.integer(train.frame$churn)
-
-
-#How good is the Logistic model in-sample - ROC and AUC
-svm.scores <- prediction(Psvm.churn,train.frame$churn)
-plot(performance(svm.scores,'tpr','fpr'),col='red')
-abline(0,1,lty=8,col='grey')
-svm.auc <- performance(svm.scores,'auc')
-svm.auc
-
-
- #Checking prediction quality on test set
-test.frame$churn <- as.integer(test.frame$churn)
-Psvm.churn.test <- predict(svmfit,test.frame)
-confusionMatrix(Psvm.churn.test,test.frame$churn)
-
-#How good is the Logistic model out-sample - ROC and AUC
-Psvm.churn.test <- as.integer(Psvm.churn.test)
-svm.scores.test <- prediction(Psvm.churn.test,test.frame$churn)
-#ROC plot for logistic regression
-plot(performance(svm.scores.test,'tpr','fpr'),col='red')
-abline(0,1,lty=8,col='grey')
-#AUC value
-svm.auc.test <- performance(svm.scores.test,'auc')
-svm.auc.test
+save(list = c('lrchurnLASSO', 'churn_lreg_udy_predictions'),
+     file = 'models/appetency/churn_lreg_udy.RData')

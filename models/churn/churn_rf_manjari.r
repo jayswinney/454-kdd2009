@@ -3,7 +3,18 @@
 library(randomForest)
 library(dplyr)
 
-setwd("~/Manjari/Northwestern/R/Workspace/Predict454/KDDCup2009/Dropbox")
+dirs <- c('c:/Users/jay/Dropbox/pred_454_team',
+          'c:/Users/uduak/Dropbox/pred_454_team',
+          'C:/Users/Sandra/Dropbox/pred_454_team',
+          '~/Manjari/Northwestern/R/Workspace/Predict454/KDDCup2009/Dropbox',
+          'C:/Users/JoeD/Dropbox/pred_454_team'
+          )
+
+for (d in dirs){
+  if(dir.exists(d)){
+    setwd(d)
+  }
+}
 
 
 # choose a script to load and transform the data
@@ -27,7 +38,7 @@ varImpPlot(churn_rf_manjari, type=1)
 # make predictions
 
 churn_rf_manjari_predictions <- predict(churn_rf_manjari, newdata=test)
-# Confusion Matrix 
+# Confusion Matrix
 #Confusion Matrix
 table(test$churn, churn_rf_manjari_predictions)
 #Accuracy = 0.924
@@ -38,8 +49,8 @@ selVars <- names(sort(churn.varImp[,1],decreasing=T))[1:50]
 set.seed(123)
 churn_rf_top_50_manjari <- randomForest(x=train[,selVars], y=factor(train$churn) ,
                                         ntree = 50, nodesize = 10, importance = TRUE)
-# AUC 
-# On train data 
+# AUC
+# On train data
 churn_rf_top_50_manjari_predictions_train <- predict(churn_rf_top_50_manjari, newdata=train,s = 'lambda.min')
 # Confusion Matri#Confusion Matrix
 table(train$churn, churn_rf_top_50_manjari_predictions_train)

@@ -3,7 +3,18 @@
 
 library(glmnet)
 
-setwd('c:/Users/Jay/Dropbox/pred_454_team')
+dirs <- c('c:/Users/jay/Dropbox/pred_454_team',
+          'c:/Users/uduak/Dropbox/pred_454_team',
+          'C:/Users/Sandra/Dropbox/pred_454_team',
+          '~/Manjari/Northwestern/R/Workspace/Predict454/KDDCup2009/Dropbox',
+          'C:/Users/JoeD/Dropbox/pred_454_team'
+          )
+
+for (d in dirs){
+  if(dir.exists(d)){
+    setwd(d)
+  }
+}
 
 
 # choose a script to load and transform the data
@@ -24,3 +35,19 @@ churn_lreg_jay_predictions <- predict(churn_lreg_jay, df_mat[-train_ind,],
 # save the output
 save(list = c('churn_lreg_jay', 'churn_lreg_jay_predictions'),
      file = 'models/churn/churn_lreg_jay.RData')
+
+
+# cv_coefs <- data.frame(
+#   coeficient = coef(churn_lreg_jay, s = 'lambda.min')[abs(coef(churn_lreg_jay,
+#                                                    s = 'lambda.min')) > 1e-4])
+#
+# row.names(cv_coefs) <- row.names(coef(churn_lreg_jay,
+#                         s = 'lambda.min'))[abs(as.vector(coef(churn_lreg_jay,
+#                         s = 'lambda.min'))) > 1e-4]
+#
+# vars <- row.names(cv_coefs)
+# paste(vars, collapse = " + ")
+#
+# plot(churn_lreg_jay)
+#
+# library(gam)
