@@ -21,13 +21,26 @@ df$churn <- churn_$V1
 df$appetency <- appetency_$V1
 df$upsell <- upsell_$V1
 
+# this portion of the code should be copied exactly
+# in every data transformation script
+# that way we will all be using the same training/testing data
 set.seed(123)
-smp_size <- floor(0.75 * nrow(df))
-train_ind <- sample(seq_len(nrow(df)), size = smp_size)
-
-# split the data
+smp_size <- floor(0.70 * nrow(df))
+test_ind <- seq_len(nrow(df))
+train_ind <- sample(test_ind, size = smp_size)
+# remove train observations from test
+test_ind <- test_ind[! test_ind %in% train_ind]
+# create an ensemble test set
+set.seed(123)
+smp_size <- floor(0.15 * nrow(df))
+ens_ind <- sample(test_ind, size = smp_size)
+# remove ensemble observations from test
+test_ind <- test_ind[! test_ind %in% ens_ind]
+# partition the data
+ensemble_test <- df[ens_ind, ]
 train <- df[train_ind, ]
-test <- df[-train_ind, ]
+test <- df[test_ind, ]
+
 # create response dataframe
 test_response <- test[,c('upsell', 'churn', 'appetency')]
 
