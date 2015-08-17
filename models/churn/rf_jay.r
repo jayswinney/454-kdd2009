@@ -34,11 +34,15 @@ churn_rf_jay <- randomForest(factor(churn) ~ ., data = train,
                              )
 
 churn_rf_jay_predictions <- predict(churn_rf_jay, test,
+                                    type = 'prob')[,2]
+
+churn_ens_rf_jay_predictions <- predict(churn_rf_jay, ensemble_test,
                                         type = 'prob')[,2]
 
 pred <- prediction(churn_rf_jay_predictions, test$churn)
 perf <- performance(pred,'auc')
 perf@y.values
 
-save(list = c('churn_rf_jay_predictions'),
+save(list = c('churn_rf_jay_predictions', 'churn_rf_jay',
+              'churn_ens_rf_jay_predictions'),
      file = 'models/churn/rf_jay.RData')

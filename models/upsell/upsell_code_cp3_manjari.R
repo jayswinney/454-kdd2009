@@ -17,7 +17,7 @@ library(randomForest)
 library(rpart)
 library(rpart.plot)
 library(rattle)
-library(GA)
+# library(GA)
 
 ##  PACKAGES NEEDED FOR THE CONFUSION MATRIX
 #install.packages("lme4")

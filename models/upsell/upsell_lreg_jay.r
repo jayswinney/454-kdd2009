@@ -51,11 +51,15 @@ plot(upsell_lreg_jay)
 upsell_lreg_jay_predictions <- predict(upsell_lreg_jay, df_mat[test_ind,],
                                       type = 'response', s = 'lambda.min')[,1]
 
+upsell_ens_lreg_jay_predictions <- predict(upsell_lreg_jay, df_mat[ens_ind,],
+                                       type = 'response', s = 'lambda.min')[,1]
+
 pred <- prediction(upsell_lreg_jay_predictions, test$upsell)
 perf <- performance(pred,'auc')
 perf@y.values
 
 # save the output
-save(list = c('upsell_lreg_jay', 'upsell_lreg_jay_predictions'),
+save(list = c('upsell_lreg_jay', 'upsell_lreg_jay_predictions',
+              'upsell_ens_lreg_jay_predictions'),
      file = 'models/upsell/upsell_lreg_jay.RData')
 
