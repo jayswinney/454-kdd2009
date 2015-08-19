@@ -4,9 +4,21 @@ library(ROCR)
 library(ggplot2)
 library(tidyr)
 library(dplyr)
+library(xtable)
 
 # ---- rdata ----
-setwd('c:/Users/Jay/Dropbox/pred_454_team')
+dirs <- c('c:/Users/jay/Dropbox/pred_454_team',
+          'c:/Users/uduak/Dropbox/pred_454_team',
+          'C:/Users/Sandra/Dropbox/pred_454_team',
+          '~/Manjari/Northwestern/R/Workspace/Predict454/KDDCup2009/Dropbox',
+          'C:/Users/JoeD/Dropbox/pred_454_team'
+)
+
+for (d in dirs){
+  if(dir.exists(d)){
+    setwd(d)
+  }
+}
 load("models/appetency/appetency_nb_sandra.RData")
 load("models/appetency/app_lreg_jay.RData")
 load("models/appetency/appetency_rf_manjari.RData")
@@ -22,9 +34,17 @@ load("models/churn/churn_lreg_udy.RData")
 load("models/churn/rf_jay.RData")
 
 load("models/upsell/upsell_lreg_jay.RData")
+load("models/upsell/rf_jay.RData")
 load("models/upsell/upsell_nb_sandra.RData")
 load("models/upsell/upsell_rf_manjari.RData")
 load("models/upsell/upsell.knnTestPred.RData")
+load('models/upsell/upsell_rf_fullvars_fit_cp3_manjari.RData')
+load('models/upsell/upsell_rf_top25_fit_cp3_manjari.RData')
+load('models/upsell/upsell_rf_top25_oversampling_cp3_manjari.RData')
+load('models/upsell/upsell_svm_fit_cp3_manjari_prob.RData')
+load('models/upsell/upsell_svm_fit_cp3_manjari_val.RData')
+load('models/upsell/upsell_glm_fit_cp3_top25_manjari.RData')
+
 
 load("data_transformations/response.RData")
 
@@ -35,36 +55,7 @@ my_colors <- c('#1f78b4', '#33a02c', '#e31a1c', '#ff7f00',
 
 # ---- combine predictions ----
 
-make_roc <- function(df, response_vec){
-  # transform data frame to be ready to plot roc curves
-
-  df_list = list()
-  # cycle through algorithms and append them to the dataframe
-  for (alg in unique(df$algorithm)){
-    pred <- prediction(df[df$algorithm == alg, 'prediction'], response_vec)
-    perf <- performance(pred, measure = "tpr", x.measure = "fpr")
-    df_list[[alg]] <- data.frame(
-      algorithm = rep(alg, length(perf@y.values)),
-      TPR = unlist(perf@y.values),
-      FPR = unlist(perf@x.values))
-  }
-  # rbind all the dataframes
-  return(do.call("rbind", df_list))
-}
-
-make_auc <- function(df, response_vec, in_house){
-  # funciton to help me build AUC comparison tables
-  auc_table = data.frame(In_House = c(in_house))
-  # cycle through algorithms and append them to the dataframe
-  for (alg in unique(df$algorithm)){
-    pred <- prediction(df[df$algorithm == alg, 'prediction'], response_vec)
-    perf <- performance(pred, measure = "auc")
-    auc_table[,alg] <- perf@y.values[[1]]
-  }
-  auc_table <- t(auc_table)
-  colnames(auc_table) <- c("AUC")
-  return(auc_table)
-}
+source('kdd_tools.r')
 
 
 # appetency
@@ -73,11 +64,20 @@ appetency_df <- data.frame(appetency = test_response$appetency,
                            logistic_regression2 = app_lreg_udy_predictions,
                            naive_bayes = appetency_nb_sandra_predictions,
                            random_forest = appetency_rf_manjari_predictions,
-                           random_forest2 = appetency_rf_jay_predictions,
-                           knn = appetency.knnTestPred)
+                           random_forest2 = appetency_rf_jay_predictions)
+                           #knn = appetency.knnTestPred)
 
 app_df2 <- gather(appetency_df, appetency, 'prediction')
 names(app_df2) <- c('true_value', 'algorithm', 'prediction')
+
+# just to clean up the workspace, remove prediction vectors
+
+rm( list = c('app_lreg_jay_predictions',
+             'app_lreg_udy_predictions',
+             'appetency_nb_sandra_predictions',
+             'appetency_rf_manjari_predictions',
+             'appetency_rf_jay_predictions',
+             'appetency.knnTestPred'))
 
 # churn
 churn_df <- data.frame(churn = test_response$churn,
@@ -85,21 +85,43 @@ churn_df <- data.frame(churn = test_response$churn,
                        logistic_regression2 = churn_lreg_jay_predictions,
                        naive_bayes = churn_nb_sandra_predictions,
                        random_forest = churn_rf_manjari_predictions,
-                       random_forest2 = churn_rf_jay_predictions,
-                       knn = churn.knnTestPred)
+                       random_forest2 = churn_rf_jay_predictions)
+                       #knn = churn.knnTestPred)
 
 churn_df2 <- gather(churn_df, churn, 'prediction')
 names(churn_df2) <- c('true_value', 'algorithm', 'prediction')
 
+rm(list = c('churn_lreg_udy_predictions',
+            'churn_lreg_jay_predictions',
+            'churn_nb_sandra_predictions',
+            'churn_rf_manjari_predictions',
+            'churn_rf_jay_predictions',
+            'churn.knnTestPred'))
+
 # upsell
-upsell_df <- data.frame(upsell = test_response$upsell,
-                        logistic_regression = upsell_lreg_jay_predictions,
-                        naive_bayes = upsell_nb_sandra_predictions,
-                        random_forest = upsell_rf_manjari_predictions,
-                        knn = upsell.knnTestPred)
+upsell_df <- data.frame(upsell = test_response$upsell
+                        , logistic_regression = upsell_lreg_jay_predictions
+                        , naive_bayes = upsell_nb_sandra_predictions
+                      # , random_forest = upsell_rf_manjari_predictions
+                        , random_forest2 = upsell_rf_jay_predictions
+                        , random_forest = rf.upsell.pred.test.prob.sub)
+                      # , random_forest5 = rf.upsell.pred.test.prob.sub.over
+                      # , svm = attr(svm.upsell.pred.prob.test,
+                      #               'probabilities')[,1])
+                      # , knn = upsell.knnTestPred)
 
 upsell_df2 <- gather(upsell_df, upsell, 'prediction')
 names(upsell_df2) <- c('true_value', 'algorithm', 'prediction')
+
+rm(list = c('upsell_lreg_jay_predictions',
+            'upsell_nb_sandra_predictions',
+            'upsell_rf_manjari_predictions',
+            'upsell_rf_jay_predictions',
+            'upsell.knnTestPred',
+            'rf.upsell.pred.test.prob.prediction',
+            'rf.upsell.pred.test.prob.sub',
+            'rf.upsell.pred.test.prob.sub.over',
+            'svm.upsell.pred.prob.test'))
 
 # ---- app ROC ----
 

@@ -93,3 +93,53 @@ all_interactions <- function(df_mat, var){
 
   return(cbind(df_mat, int_mat))
 }
+
+
+scale_vec <- function(x){
+  # input:
+  #   - vector
+  # output:
+  #   - copy of vector scaled from 0 to 1
+
+  (x - min(x))/diff(range(x))
+}
+
+
+make_roc <- function(df, response_vec){
+  # transform data frame to be ready to plot roc curves
+
+  df_list = list()
+  # cycle through algorithms and append them to the dataframe
+  for (alg in unique(df$algorithm)){
+    pred <- prediction(df[df$algorithm == alg, 'prediction'], response_vec)
+    perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+    df_list[[alg]] <- data.frame(
+      algorithm = rep(alg, length(perf@y.values)),
+      TPR = unlist(perf@y.values),
+      FPR = unlist(perf@x.values))
+  }
+  # rbind all the dataframes
+  return(do.call("rbind", df_list))
+}
+
+make_auc <- function(df, response_vec, in_house){
+  # funciton to help me build AUC comparison tables
+  auc_table = data.frame(In_House = c(in_house))
+  # cycle through algorithms and append them to the dataframe
+  for (alg in unique(df$algorithm)){
+    pred <- prediction(df[df$algorithm == alg, 'prediction'], response_vec)
+    perf <- performance(pred, measure = "auc")
+    auc_table[,alg] <- perf@y.values[[1]]
+  }
+  auc_table <- t(auc_table)
+  colnames(auc_table) <- c("AUC")
+  return(auc_table)
+}
+
+vec_auc <- function(yhat, y){
+  # calculate the AUC for a vector and truth vector
+  pred <- prediction(yhat, y)
+  perf <- performance(pred, measure = "auc")
+  return(perf@y.values[[1]])
+
+}
