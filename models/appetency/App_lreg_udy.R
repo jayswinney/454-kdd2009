@@ -487,13 +487,17 @@ abline(0,1,lty=8,col='grey')
 
 
 # make logsitic regression predictions
-app_lreg_udy_predictions <- predict(lrfitLASSO, test,
-                                      type = 'response')
+app_lreg_udy_pred <- predict(lrfitLASSO, test,
+                             type = 'response')
+
+app_ens_lreg_udy_pred <- predict(lrfitLASSO, ensemble_test,
+                                 type = 'response')
 
 # churn_svm_udy_predictions <- predict(lrfit, df_mat[-train_ind,],
 #                                       type = 'response')
 
 
 # save the output
-save(list = c('lrfitLASSO', 'app_lreg_udy_predictions'),
+save(list = c('lrfitLASSO', 'app_lreg_udy_pred',
+              'app_ens_lreg_udy_pred'),
      file = 'models/appetency/app_lreg_udy.RData')
