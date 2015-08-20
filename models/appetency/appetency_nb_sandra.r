@@ -115,6 +115,7 @@ mkPredC <- function(outCol,varCol,appCol) {
 for(v in catVars) {
   pi <- paste('pred',v,sep='')
   train[,pi] <- mkPredC(train[,outcome],train[,v],train[,v])
+  ensemble_test[,pi] <- mkPredC(train[,outcome],train[,v],ensemble_test[,v])
   dCal[,pi] <- mkPredC(train[,outcome],train[,v],dCal[,v])
   test[,pi] <- mkPredC(train[,outcome],train[,v],test[,v])
 }
@@ -153,6 +154,7 @@ for(v in numericVars) {
   pi <- paste('pred',v,sep='')
   train[,pi] <- mkPredN(train[,outcome],train[,v],train[,v])
   test[,pi] <- mkPredN(train[,outcome],train[,v],test[,v])
+  ensemble_test[,pi] <- mkPredN(train[,outcome],train[,v],ensemble_test[,v])
   dCal[,pi] <- mkPredN(train[,outcome],train[,v],dCal[,v])
   aucTrain <- calcAUC(train[,pi],train[,outcome])
   if(aucTrain>=0.55) {
@@ -242,8 +244,12 @@ appetency_nb_sandra_model <- naiveBayes(as.formula(ff),data=train)
 appetency_nb_sandra_predictions <-predict(
   appetency_nb_sandra_model,newdata=test,type='raw')[,'TRUE']
 
+app_ens_nb_sandra_pred <-predict(appetency_nb_sandra_model,
+                                 newdata=ensemble_test, type='raw')[,'TRUE']
+
 # set the director path were the file will be placed
 ###   SET DIRECTORY PATH:
 # save the output
-save(list = c('appetency_nb_sandra_model', 'appetency_nb_sandra_predictions'),
+save(list = c('appetency_nb_sandra_model', 'appetency_nb_sandra_predictions',
+              'app_ens_nb_sandra_pred'),
      file = 'models/appetency/appetency_nb_sandra.RData')
