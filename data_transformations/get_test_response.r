@@ -43,6 +43,8 @@ test <- df[test_ind, ]
 
 # create response dataframe
 test_response <- test[,c('upsell', 'churn', 'appetency')]
+ens_response <- ensemble_test[,c('upsell', 'churn', 'appetency')]
 
 # save the test response vectors
-save("test_response", file = 'data_transformations/response.RData')
+save(list = c("test_response", 'ens_response'),
+     file = 'data_transformations/response.RData')
