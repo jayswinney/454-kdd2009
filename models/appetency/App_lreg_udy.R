@@ -13,6 +13,7 @@ library(data.table)
 library(caret)
 library(rpart)
 library(rpart.plot)
+library(FSelector)
 # ----
 
 # ---- read_data ----
@@ -104,35 +105,15 @@ par(mar = c(5, 10, 4, 2) + 0.1)
 barplot(AppTree$variable.importance,horiz=T,las=1, cex.names = 0.75)
 par(mar = c(5, 4, 4, 2) + 0.1)
 
-# #Graphical analysis of DT selected variables
-# summary(Var126)
-# ggplot(df) + geom_bar(aes(x=Var126,group=appetency,
-#                           fill=appetency))
-# table(Var204_dummy_RVjC)
-# ggplot(df) + geom_bar(aes(x=Var204_dummy_RVjC,group=appetency,
-#                           fill=appetency))
-# table(Var218_dummy_cJvF)
-# ggplot(df) + geom_bar(aes(x=Var218_dummy_cJvF,group=appetency,
-#                           fill=appetency))
-# summary(Var25)
-# ggplot(df) + geom_bar(aes(x=Var25,group=appetency,
-#                           fill=appetency))
-# summary(Var38)
-# ggplot(df) + geom_bar(aes(x=Var38,group=appetency,
-#                           fill=appetency))
-# summary(Var57)
-# ggplot(df) + geom_bar(aes(x=Var57,group=appetency,
-#                           fill=appetency))
 
-
-#GOF logistic regression using variables from Tree selection
+#GOF logistic regression using variables from exploratory Tree 
 lrApp.tree <- glm(appetency~Var112+Var113+Var126+Var140+
                     Var153+Var21+Var216_dummy_beK4AFX+Var218_dummy_cJvF+Var24+
                     Var38+Var6+Var76+Var81,data = train, family = binomial)
 
 summary(lrApp.tree)
 
-#Refitted with statitically significant variables
+#Refitted with statitically significant variables from exploratory tree
 lrApp.treeRe <- glm(appetency~Var126+Var140+Var218_dummy_cJvF
                       ,data = train, family = binomial)
 
@@ -146,18 +127,44 @@ fit <- lrApp.tree$fitted
 hist(fit)
 par(mfrow=c(1,1))
 
-# #################################################
-# # Chi-square goodness of fit test
-# #################################################
-# # Calculate residuals across all individuals
-# r.tree <- (df_mat.frame$appetency - fit)/(sqrt(fit*(1-fit)))
-# # Sum of squares of these residuals follows a chi-square
-# sum(r.tree^2)
-# #Calculate the p-value from the test
-# 1- pchisq(65795.97, df=49996)
+#PERFORMING FEATURE SELECTION USING FSELECTOR
 
-#Exploratory logistic Regression with LASSO - Udy's code changes
+#use random.forest.importance to calculate weight of each attribute
+weights = random.forest.importance(appetency~., train, importance.type = 1)
+print(weights)
+#use cutoff to obtain the top 30 attributes
+subset = cutoff.k(weights, 30)
+f = as.simple.formula(subset, "Appetency")
+print(f)
+
+# Evaluator to select feature subsets
+train$appetency <- as.factor(train$appetency)
+evaluator = function(subset) {
+  k = 5
+  set.seed(2)
+  ind = sample(5, nrow(train), replace = TRUE)
+  results = sapply(1:k, function(i) {
+    train.ev = train[ind ==i,]
+    test.ev  = test[ind !=i,]
+    tree.ev  = rpart(as.simple.formula(subset, "appetency"), train.ev)
+    error.rate = sum(test.ev$appetency!= predict(tree.ev,test.ev,
+                                                  type="class")) / nrow(test.ev)
+    return(1 - error.rate)
+  })
+  return(mean(results))
+}
+names(train)
+#Finding optimum feature subsets using hill climbing search:
+# attr.subset = hill.climbing.search(names(train)[!names(train) %in% 
+#                                                   "appetency"], evaluator)
+attr.subset = hill.climbing.search(names(train)[-552], evaluator)
+f = as.simple.formula(attr.subset, "appetency")
+print(f)
+
+
+#LOGISTIC REGRESSION WITH LASSO EDA/VARIABLE SELECTION
 # ---- LASSO_appetency ----
+
 library(glmnet)
 # regularized logistic regression with LASSO
 
@@ -272,7 +279,7 @@ sum(r.LASSO^2)
 
 
 
-## Random Forest
+#RANDOM FOREST EDA/VARIABLE SELECTION
 ?randomForest
 # ---- rf_churn ----
 library(randomForest)
@@ -350,11 +357,11 @@ sum(r.Rf^2)
 # tiny.frame <- df_mat.frame[tiny_ind, ]
 
 ############################
-#Logistic Models
+#LOGISTIC MODELS
 ############################
 
 
-#Decision Tree Variables:
+#1. Logistic regression with decision tree selected variables
 lrfitDT <-glm(appetency~Var112+Var113+Var126+Var140+Var153+Var21+
                 Var216_dummy_beK4AFX+Var218_dummy_cJvF+Var24+Var38+
                 Var6+Var76+Var81,data=train,family = binomial)
@@ -390,7 +397,7 @@ abline(0,1,lty=8,col='grey')
 DT.auc.test <- performance(DT.scores.test,'auc')
 DT.auc.test
 
-#LASSO
+#2. Logistic regression with LASSO selected variables
 lrfitLASSO <-glm(appetency~Var28+Var34+Var38+Var44+Var58+Var64+Var67+Var75+
                    Var81+Var84+Var95+Var124+Var125+
                    Var126+Var140+Var144+Var152+Var162+Var171+Var177+
@@ -440,7 +447,7 @@ LASSO.auc.test <- performance(LASSO.scores.test,'auc')
 LASSO.auc.test
 
 
-#Random Forest
+#3. Logistic regression with Random Forest selected variables
 lrfitRf <-glm(appetency~Var126+Var6+Var81+Var113+Var119+Var28+Var25+Var85+
                 Var218_dummy_UYBR+Var22+Var73+Var153+Var83+
                 Var133+Var123+Var109+Var160+Var125+Var218_dummy_cJvF+Var21+

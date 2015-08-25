@@ -26,19 +26,23 @@ source('kdd_tools.r')
 
 train <- select(train, -upsell, - churn)
 
-appetency_rf_jay <- randomForest(factor(appetency) ~ ., data = train,
-                                 nodesize = 4, ntree = 1000,
-                                 strata = factor(train$appetency),
-                                 sampsize = c(608, 608)
-                                 )
+set.seed(287)
+app_rf_jay <- randomForest(factor(appetency) ~ ., data = train,
+                           nodesize = 4, ntree = 1000,
+                           strata = factor(train$appetency),
+                           sampsize = c(608, 608)
+                           )
 
 
-appetency_rf_jay_predictions <- predict(appetency_rf_jay, test,
+app_rf_jay_predictions <- predict(app_rf_jay, test,
                                         type = 'prob')[,2]
 
-pred <- prediction(appetency_rf_jay_predictions, test$appetency)
+pred <- prediction(app_rf_jay_predictions, test$appetency)
 perf <- performance(pred,'auc')
 perf@y.values
 
-save(list = c('appetency_rf_jay_predictions'),
+app_ens_rf_jay_pred <- predict(app_rf_jay, ensemble_test,
+                               type = 'prob')[,2]
+
+save(list = c('app_rf_jay_predictions','app_ens_rf_jay_pred'),
      file = 'models/appetency/rf_jay.RData')
