@@ -375,10 +375,14 @@ abline(0,1,lty=8,col='blue')
 churn_lreg_udy_predictions <- predict(lrchurnLASSO, test,
                                     type = 'response')
 
+churn_ens_lreg_udy_predictions <- predict(lrchurnLASSO, ensemble_test,
+                                          type = 'response')
+
 # churn_svm_udy_predictions <- predict(lrfit, df_mat[-train_ind,],
 #                                       type = 'response')
 
 
 # save the output
-save(list = c('lrchurnLASSO', 'churn_lreg_udy_predictions'),
-     file = 'models/appetency/churn_lreg_udy.RData')
+save(list = c('lrchurnLASSO', 'churn_lreg_udy_predictions',
+              'churn_ens_lreg_udy_predictions'),
+     file = 'models/churn/churn_lreg_udy.RData')

@@ -240,8 +240,13 @@ print(plotROC(test$nbpred,test[,outcome]))
 
 #### Model Output .RData for Project:
 churn_nb_sandra_model <- naiveBayes(as.formula(ff),data=train)
-churn_nb_sandra_predictions <-predict(churn_nb_sandra_model,newdata=test,type='raw')[,'TRUE']
+churn_nb_sandra_predictions <-predict(churn_nb_sandra_model,
+                                      newdata=test,type='raw')[,'TRUE']
+
+churn_ens_nb_sandra_predictions <-predict(churn_nb_sandra_model,
+                                          ensemble_test,type='raw')[,'TRUE']
 
 # save the output
-save(list = c('churn_nb_sandra_model', 'churn_nb_sandra_predictions'),
+save(list = c('churn_nb_sandra_model', 'churn_nb_sandra_predictions',
+              'churn_ens_nb_sandra_predictions'),
      file = 'models/churn/churn_nb_sandra.RData')

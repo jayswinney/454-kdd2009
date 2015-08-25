@@ -43,21 +43,26 @@ churn_rf_manjari_predictions <- predict(churn_rf_manjari, newdata=test)
 table(test$churn, churn_rf_manjari_predictions)
 #Accuracy = 0.924
 
-#Creating Random forest with top 50 variables based on variable importance reduced accuracy of the
-# model . So we will be using the full model itself.
+#Creating Random forest with top 50 variables based on variable importance
+# reduced accuracy of the model . So we will be using the full model itself.
 selVars <- names(sort(churn.varImp[,1],decreasing=T))[1:50]
 set.seed(123)
 churn_rf_top_50_manjari <- randomForest(x=train[,selVars], y=factor(train$churn) ,
                                         ntree = 50, nodesize = 10, importance = TRUE)
 # AUC
 # On train data
-churn_rf_top_50_manjari_predictions_train <- predict(churn_rf_top_50_manjari, newdata=train,s = 'lambda.min')
+churn_rf_top_50_manjari_predictions_train <- predict(churn_rf_top_50_manjari,
+                                                     newdata=train)
 # Confusion Matri#Confusion Matrix
 table(train$churn, churn_rf_top_50_manjari_predictions_train)
 # On test data
 churn_rf_top_50_manjari_predictions_test <- predict(churn_rf_top_50_manjari,
                                                     newdata = test,
                                                     type = 'prob')[,2]
+
+churn_ens_rf_manjari_predictions <- predict(churn_rf_top_50_manjari,
+                                            newdata = ensemble_test,
+                                            type = 'prob')[,2]
 # Confusion Matri#Confusion Matrix
 
 table(test$churn, churn_rf_top_50_manjari_predictions_test)
@@ -99,5 +104,6 @@ as.numeric(performance(ROCR , "auc")@y.values)
 churn_rf_manjari <- churn_rf_top_50_manjari
 churn_rf_manjari_predictions <- churn_rf_top_50_manjari_predictions_test
 # save the output
-save(list = c('churn_rf_manjari', 'churn_rf_manjari_predictions'),
+save(list = c('churn_rf_manjari', 'churn_rf_manjari_predictions',
+              'churn_ens_rf_manjari_predictions'),
      file = 'models/churn/churn_rf_manjari.RData')
