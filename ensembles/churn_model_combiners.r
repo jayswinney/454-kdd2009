@@ -42,13 +42,22 @@ model_responses <- data.frame(
   churn_lreg_jay_predictions
   )
 
+model_responses_ens <- data.frame(
+  # churn = test_response$churn,
+  churn_rf_jay_predictions = churn_ens_rf_jay_predictions,
+  churn_lreg_udy_predictions = churn_ens_lreg_udy_predictions,
+  # churn_nb_sandra_predictions = churn_ens_nb_sandra_predictions,
+  churn_rf_manjari_predictions = churn_ens_rf_manjari_predictions,
+  churn_lreg_jay_predictions = churn_ens_lreg_jay_predictions
+  )
+
 churn_ens_rf <- randomForest(factor(churn) ~ ., data = model_responses,
-                             nodesize = 4, ntree = 200,
+                             nodesize = 4, ntree = 100,
                              strata = factor(model_responses$churn),
                              sampsize = c(500, 500)
                              )
 
-churn_ens_rf_predictions <- predict(churn_ens_rf, ensemble_test,
+churn_ens_rf_predictions <- predict(churn_ens_rf, model_responses_ens,
                                     type = 'prob')[,2]
 
 churn_vote <- rowSums(data.frame(
@@ -68,6 +77,9 @@ churn_df <- data.frame(churn = ens_response$churn,
                        random_forest2 = churn_ens_lreg_jay_predictions,
                        vote_ensemble = churn_vote,
                        rf_ensemble = churn_ens_rf_predictions)
+
+churn_df2 <- gather(churn_df, churn, 'prediction')
+names(churn_df2) <- c('true_value', 'algorithm', 'prediction')
 
 churn_roc_df <- make_roc(churn_df2, ens_response$churn)
 # plot results
