@@ -560,7 +560,7 @@ summary(upsell_tree)
 ### Random Forest
 
 The Random Forest classifier selected nearly 200 predictor variables as having significant predictive value for up-sell, which does not help in reducing the number of variables for modeling. The Variable Importance plot below does includ Var126 which shows as an important variable in the Decision tree.
-```{r rf_upsell, echo=FALSE, fig.width=7, fig.height=4, fig.align='center'}
+```{r rf_upsell, echo=FALSE, fig.width=7, fig.height=4}
 plot_df = data.frame(churn_rf$importance)
 plot_df$Variable <- factor(row.names(plot_df))
 plot_df$Variable <- factor(plot_df$Variable,
@@ -587,9 +587,10 @@ knitr::read_chunk('script_for_paper.R')
 ```
 ```{r rdata,echo = FALSE}
 ```
+
 ```{r combine predictions,echo = FALSE}
 ```
-
+  
 ## Train/Test Data
 
 A 75/25 split was selected for training and testing and all models used the same training and testing data to allow good omparisons across the model output.  

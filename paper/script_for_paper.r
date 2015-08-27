@@ -19,6 +19,7 @@ for (d in dirs){
     setwd(d)
   }
 }
+
 load("models/appetency/appetency_nb_sandra.RData")
 load("models/appetency/app_lreg_jay.RData")
 load("models/appetency/appetency_rf_manjari.RData")
@@ -45,7 +46,6 @@ load('models/upsell/upsell_svm_fit_cp3_manjari_prob.RData')
 load('models/upsell/upsell_svm_fit_cp3_manjari_val.RData')
 load('models/upsell/upsell_glm_fit_cp3_top25_manjari.RData')
 
-
 load("data_transformations/response.RData")
 
 
@@ -53,18 +53,29 @@ my_colors <- c('#1f78b4', '#33a02c', '#e31a1c', '#ff7f00',
                '#6a3d9a', '#b15928', '#a6cee3', '#b2df8a',
                '#fb9a99', '#fdbf6f', '#cab2d6', '#ffff99')
 
-# ---- combine predictions ----
+
+# dirs <- c('c:/Users/jay/Dropbox/pred_454_team',
+#           'c:/Users/uduak/Dropbox/pred_454_team',
+#           'C:/Users/Sandra/Dropbox/pred_454_team',
+#           '~/Manjari/Northwestern/R/Workspace/Predict454/KDDCup2009/Dropbox',
+#           'C:/Users/JoeD/Dropbox/pred_454_team'
+# )
+#
+# for (d in dirs){
+#   if(dir.exists(d)){
+#     setwd(d)
+#   }
+# }
 
 source('kdd_tools.r')
-
-
+# ---- combine predictions ----
 # appetency
 appetency_df <- data.frame(appetency = test_response$appetency,
                            logistic_regression = app_lreg_jay_predictions,
-                           logistic_regression2 = app_lreg_udy_predictions,
+                           logistic_regression2 = app_lreg_udy_pred,
                            naive_bayes = appetency_nb_sandra_predictions,
                            random_forest = appetency_rf_manjari_predictions,
-                           random_forest2 = appetency_rf_jay_predictions)
+                           random_forest2 = app_rf_jay_predictions)
                            #knn = appetency.knnTestPred)
 
 app_df2 <- gather(appetency_df, appetency, 'prediction')
@@ -73,10 +84,10 @@ names(app_df2) <- c('true_value', 'algorithm', 'prediction')
 # just to clean up the workspace, remove prediction vectors
 
 rm( list = c('app_lreg_jay_predictions',
-             'app_lreg_udy_predictions',
+             'app_lreg_udy_pred',
              'appetency_nb_sandra_predictions',
              'appetency_rf_manjari_predictions',
-             'appetency_rf_jay_predictions',
+             'app_rf_jay_predictions',
              'appetency.knnTestPred'))
 
 # churn
