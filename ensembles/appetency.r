@@ -4,6 +4,7 @@ library(randomForest)
 library(dplyr)
 library(tidyr)
 
+
 dirs <- c('c:/Users/jay/Dropbox/pred_454_team',
           'c:/Users/uduak/Dropbox/pred_454_team',
           'C:/Users/Sandra/Dropbox/pred_454_team',
@@ -42,6 +43,24 @@ app_vote <- rowSums(data.frame(
   scale_vec(app_ens_lreg_jay_predictions)
   ))/2
 
+# dataframe to train neural network ensemble on
+
+app_train <- data.frame(
+  appetency = test_response$appetency,
+  random_forest2 = app_rf_jay_predictions,
+  logistic_regression = app_lreg_udy_pred,
+  naive_bayes = appetency_nb_sandra_predictions,
+  logistic_regression2 = app_lreg_jay_predictions
+  )
+
+app_train <- cbind(app_train, select(test, -upsell, -churn))
+
+set.seed(61)
+rf_stack <- randomForest(factor(appetency) ~ ., data = app_train,
+                         nodesize = 5, ntree = 100,
+                         strata = factor(test$appetency),
+                         sampsize = c(500, 100))
+
 app_df <- data.frame(
   appetency = ensemble_test$appetency,
   random_forest2 = app_ens_rf_jay_pred,
@@ -52,6 +71,11 @@ app_df <- data.frame(
   vote_ensemble = app_vote
   )
 
+rf_stack_pred <- predict(rf_stack,
+                         cbind(ensemble_test, app_df),
+                         type = 'prob')[,2]
+
+app_df$stacked_random_forest <- rf_stack_pred
 
 app_df2 <- gather(app_df, appetency, 'prediction')
 names(app_df2) <- c('true_value', 'algorithm', 'prediction')
@@ -66,3 +90,5 @@ ggplot(data = app_roc_df, aes(x = FPR, y = TPR, group = algorithm,
   ggtitle('ROC Curves Appetency Models')
 
 make_auc(app_df2, ens_response$appetency, 0.7435)
+
+save(list = c('rf_stack_pred', 'app_vote'), file = 'ensembles/app.RData')

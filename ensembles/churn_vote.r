@@ -1,6 +1,8 @@
 
 library(ROCR)
 library(ggplot2)
+library(dplyr)
+library(tidyr)
 
 dirs <- c('c:/Users/jay/Dropbox/pred_454_team',
           'c:/Users/uduak/Dropbox/pred_454_team',
@@ -40,33 +42,15 @@ churn_vote <- rowSums(data.frame(
   scale_vec(churn_ens_lreg_jay_predictions)
   ))/4
 
-
-# weighted ensemble
-# this one is not any different than vote simple right now.
-# I need to add stronger weights
-# churn_vote_weighted <- rowSums(data.frame(
-#   scale_vec(churn_ens_rf_jay_predictions) * vec_auc(
-#       churn_rf_jay_predictions,test_response$churn) ,
-#   scale_vec(churn_ens_lreg_udy_predictions) * vec_auc(
-#       churn_lreg_udy_predictions,test_response$churn) ,
-#   # scale_vec(churn_ens_nb_sandra_predictions) * vec_auc(
-#   #   churn_nb_sandra_predictions,test_response$churn) ,
-#   scale_vec(churn_ens_rf_manjari_predictions) * vec_auc(
-#       churn_rf_manjari_predictions,test_response$churn) ,
-#   scale_vec(churn_ens_lreg_jay_predictions) * vec_auc(
-#       churn_lreg_jay_predictions,test_response$churn)
-#   ))/4
-
 # combine all predictions
 churn_df <- data.frame(churn = ens_response$churn,
                        logistic_regression = churn_ens_rf_jay_predictions,
                        logistic_regression2 = churn_ens_lreg_udy_predictions,
-                       #  naive_bayes = churn_ens_nb_sandra_predictions,
+                       naive_bayes = churn_ens_nb_sandra_predictions,
                        random_forest = churn_ens_rf_manjari_predictions,
                        random_forest2 = churn_ens_lreg_jay_predictions,
                        vote_ensemble = churn_vote)
-                      #  ,
-                      #  weighted_vote = churn_vote_weighted)
+
 
 churn_df2 <- gather(churn_df, churn, 'prediction')
 names(churn_df2) <- c('true_value', 'algorithm', 'prediction')
