@@ -18,44 +18,24 @@ output:
 
 # Summary
 
-This document covers the modeling process to identify three binary outcome variables from a 50,000 observation 230 variable anonymized dataset representing CRM data from Orange, a large telecom company in France.  The target variables are Churn (customer attrition), Appetency (propensity to purchase) and Up-Selling (likelihood to buy more expensive goods and services). As the outcome variables are all binary, classification models including Random Forest, Logistic Regression, Naïve Bayes, support Vector Machines and K Nearest Neighbor have all been applied and compared with the goal of selecting the best model type and variable set for each of the three target variables. (I.E., the modeling process for each target has been completed independently and models and variables selected for each target will be custom selected). This is the 3rd check in and results here-in are within 1 to 4 points of the company's in-house results. The team is currently focussed on developing ensemble models to combine the results of submodels with the goal of improving the models effectiveness.     
+This document describes the modeling process to predict three binary outcome variables from a 50,000 observation, 230 variable data set with  anonymized variables representing CRM data from Orange, a large telecom company in France.  The overall goal was to improve upon the result achieved internally, but to do so without knowing anything about the available variables. The target variables are Churn (customer attrition), Appetency (propensity to purchase) and Up-Selling (likelihood to buy more expensive goods and services). As the outcome variables are all binary, classification models were selected as the best models for this exercise.  Models applied included Random Forest, Logistic Regression, Naïve Bayes, Support Vector Machines and K Nearest Neighbor with the goal of selecting the best model type and variable set for each of the three target variables. (I.E., the modeling process for each target has been completed independently and models and variables selected for each target will be custom selected). An ensemble model approach was also used to attempt to combine the results of the individual approaches into a superior model.  Results summarized here-in are very close to the company's in-house results, with Churn matching, Appetency being 3 points behind and Up-Sell being 4 points behind the in-house model.     
 
 # Introduction
-Customer Relationship Management (CRM) software first became available in the 90s and has proliferated through companies large and small as a way to track interactions among companies and their customers.  Whether you call Citibank, Verizon, Comcast, Carnival Cruise Lines about that cruise you are planning, Microsoft Technical support to fix a technology problem, or you are the target of an email marketing compaign, it is highly likely that your interaction will be captured in a CRM system.  While the original purpose of CRM systems was to track customer interactions to closure, over time the data about customer interests, preferences and actions have become increasingly valuable and more effort is being made to extract insight to improve business decisions.     
+Customer Relationship Management (CRM) software first became available in the 90s and has proliferated through companies large and small as a way to track interactions among companies and their customers.  Whether you call Citibank, Verizon, Comcast, Carnival Cruise Lines about that cruise you are planning, Microsoft Technical support to fix a technology problem, or you are the target of an email marketing campaign, it is highly likely that your interaction will be captured in a CRM system.  While the original purpose of CRM systems was to track customer interactions to closure, over time the data about customer interests, preferences and actions have become increasingly valuable and more effort is being made to extract insight to improve business decisions.     
 
-The goal of this modeling exercise is exactly that, the analysis of customer data in a CRM database with an eye towards building models to predict future customer actions. The dataset in question, the KDD Cup 2009 CRM problem is a dataset from Orange, a French Telecom company that was used as part of a KDD competition and consists of 50,000 observations with 230 variables, 190 of which are numerical and 40 of which are categorical.  There are three target variables that are subject to prediction and these variables are binary, marked with either a 1 incidating the outcome occurred or exists for that observation or a -1 indicating that the outcome did not occur or exist for that observation (as part of the data transformation process, -1 values have been changed to 0 to result in binary values).  The target variables of Churn, Appetency and Upselling as described below; There is no overlap among the three variables, i.e. if a customer has a 1 for churn, they will have 0s for both of the other variables.
+The goal of this modeling exercise is exactly that, the analysis of customer data in a CRM database with an eye towards building models to predict future customer actions. The data set in question, the KDD Cup 2009 CRM problem is a data set from Orange, a French Telecom company that was used as part of a KDD competition and consists of 50,000 observations with 230 variables, 190 of which are numerical and 40 of which are categorical.  There are three target variables that are subject to prediction and these variables are binary, marked with either a 1 indicating that the outcome occurred or exists for that observation or a -1 indicating that the outcome did not occur or exist for that observation (as part of the data transformation process, -1 values have been changed to 0 to result in binary values).  The target variables of Churn, Appetency and Up selling as described below; There is no overlap among the three variables, i.e. if a customer has a 1 for churn, they will have 0s for both of the other variables.
 
-Churn: Churn might also be thought of as attribution and in the dataset it is assumed that a 1 value indicates that a customer has stopped using the company's services. Out of the 50,000 observations only 7% have a 1 for churn. 
+Churn: Churn might also be thought of as attribution and in the data set it is assumed that a 1 value indicates that a customer has stopped using the company's services. Out of the 50,000 observations only 7% have a 1 for churn. 
 
 Appetency: Represents the customers willingness to buy the service. It is assumed that a 1 value indicates a customer is likely willing to use additional services. Only 2% of observations are marked with a 1 for appetency indicating a proclivity for buying.   
 
-Upselling: Represents the likelihood of the customer to upgrade to a more profitable services. It is assumed that a 1 value indicates that a customer is likely to upgrade or be subject to an upselling marketing approach.  About 7% of the observations have a 1 indicating upselling.
+Up selling: Represents the likelihood of the customer to upgrade to a more profitable services. It is assumed that a 1 value indicates that a customer is likely to upgrade or be subject to an up selling marketing approach.  About 7% of the observations have a 1 indicating up selling.
 
-#Issues with the Data
-
-There are several significant issues with the dataset that required solutions or strategies before model development could begin.
-
-Number of Variables: As noted above, there are 230 variables in this dataset and therefore building model to required an approach to variable selection and reduction that would produce the most effective collection of variables.
-
-Anonymity:  Several levels of anonymity have been implemented. First the variable names have been replaced by number values, i.e. Var1 to Var290. Secondly, the variable values have been replaced with seemingly non-sensical information for instance categorical vriables have been replaced with series of random characters.  The random series of characters are present in more than one observation so clearly represent some type of categorical identification, but, it is not clear what that is. The actual product or service that the company is offering is also unknown.
-
-Unknown Granularity: There are 50,000 observations in the dataset, however, it is not clear if each observation represents one customer or for instance if observations are targets of marketing campaigns where a single customer can appear more than once. For model building it is assumed that each observation represents a single customer.  
-
-Missing Variables: Many of the observations are missing values for many of the variables. Combined with the anonymity above, it is difficult to determine if data is missing for a legitimate reason, as in possibly the values represent marketing campaigns and a missing value indicates that that customer was not targeted by that campaign.
-
-#Missing Variable Resolution
-
-Given that the predictors are unknown and are generically labeled, a strategy was developed for data imputation.
-
-Numeric variables: Missing values for numeric variable was done by using zero (0) for numeric variables
-
-Categorical variables: Missing values for categorizal variables were replaced with 'missing' and a indicator variable was added to retain visibility with a 1 indicating the value was replaced and a 0 indicating it was not.  
-  
 # The Modeling Problem  
 
-The goal is to identify the most effective set of variables and most effective model or combinations of models to predict a future customer's likelihood of churn, appetency or upselling using the availabe data. As each variable has a yes or no outcome the models used are those applicable to binary classification outcomes such as Logistic, Support Vector Machines, Random Forest, Naive Bayes and Decision Trees.  Each of the target variables have been considered independently and the variable selection process was applied to each target separately.    
+The goal is to identify the most effective set of variables and most effective model or combinations of models to predict a future customer's likelihood of churn, appetency or up selling using the available data. As each variable has a Yes or No outcome the models used are those applicable to binary classification outcomes such as Logistic, Support Vector Machines, Random Forest, Naive Bayes and Decision Trees.  Each of the target variables have been considered independently and the variable selection process was applied to each target separately.    
 
-In addition to identifying the best model for each outcome variable, as the dataset has been used in a KDD competition there is a secondary goal to exceed the result of the winning groups from that competiton using a test data set. The results of those teams below, along with information on the approach used, was considered during model development. The original competition used both a large dataset consisting of 15,000 variables and a smaller dataset with 230 variables. All comparisons will be made against the smaller dataset.  
+In addition to identifying the best model for each outcome variable, as the data set has been used in a KDD competition there is a secondary goal to exceed the result of the winning groups from that competition using a test data set. The results of those teams below, along with information on the approach used, was considered during model development. The original competition used both a large data set consisting of 15,000 variables and a smaller data set with 230 variables. All comparisons will be made against the smaller data set.  
 
 
 First Place: University of Melbourne (The generally satisfactory model)
@@ -159,12 +139,33 @@ df <- dplyr::select(data.frame(t(basicStats(df))), 1:9)
 colnames(df)[c(5,6,9)] <- c('Q1', 'Q2','Positive_Instances')
 print(xtable(data.frame(df), caption = 'Response Variables'))
 
+
 ```
-For the original competition, 2 data sets were used by competitiors, a large dataset consisting of 15,000 variables and a reduced data set of only 230 variables available for competitiors using personal computers rather than larger more powerful systems. As previously noted, the dataset has a number of issues.  The variable names have been replace with generic names, i.e. Var1, Var2, etc, so, for each variable, there is no way to determine what the variable actually represents.  There are many missing values, but imputation of missing values is even more difficult than normal as knowledge about what a variable represents could aid in selecting the imputation method.
+For the original competition, 2 data sets were used by competitors, a large data set consisting of 15,000 variables and a reduced data set of only 230 variables available for competitors using personal computers rather than larger more powerful systems. As previously noted, the data set has a number of issues.  The variable names have been replace with generic names, i.e. Var1, Var2, etc, so, for each variable, there is no way to determine what the variable actually represents.  There are many missing values, but imputation of missing values is even more difficult than normal as knowledge about what a variable represents could aid in selecting the imputation method.
 
-The table below shows that there are no missing values in the target variables, values are either a 1 or a -1 (which was changed to a zero for modeling purposes) and a small number of the outcome variables have 1s, indicating the status for that observation, so, for Churn, a 1 indicates that the customer churned or left, for appetency, the 1 indicates a propensity to buy a product or service and for upselling a 1 indicates the customer has acquired additional products or services or has upgraded their products or services.   
+The table below shows that there are no missing values in the target variables, values are either a 1 or a -1 (which was changed to a zero for modeling purposes) and a small number of the outcome variables have 1s, indicating the status for that observation, so, for Churn, a 1 indicates that the customer churned or left, for appetency, the 1 indicates a propensity to buy a product or service and for up selling a 1 indicates the customer has acquired additional products or services or has upgraded their products or services.   
 
-\pagebreak
+#pagebreak
+
+#Issues with the Data
+
+There are several significant issues with the data set that required solutions or strategies before model development could begin.
+
+Number of Variables: As noted above, there are 230 variables in this data set and therefore building model to required an approach to variable selection and reduction that would produce the most effective collection of variables.
+
+Anonymity:  Several levels of anonymity have been implemented. First the variable names have been replaced by number values, i.e. Var1 to Var230. Secondly, the variable values have been replaced with seemingly nonsensical information for instance categorical variables have been replaced with series of random characters.  The random series of characters are present in more than one observation so clearly represent some type of categorical identification, but, it is not clear what that is. The actual product or service that the company is offering is also unknown.
+
+Unknown Granularity: There are 50,000 observations in the data set, however, it is not clear if each observation represents one customer or for instance if observations are targets of marketing campaigns where a single customer can appear more than once. For model building it is assumed that each observation represents a single customer.  
+
+Missing Variables: Many of the observations are missing values for many of the variables. Combined with the anonymity above, it is difficult to determine if data is missing for a legitimate reason, as in possibly the values represent marketing campaigns and a missing value indicates that that customer was not targeted by that campaign.
+
+#Missing Variable Resolution
+
+Given that the predictors are unknown and are generically labeled, a strategy was developed for data imputation.
+
+Numeric variables: Missing values for numeric variable were replace by using zero (0) for numeric variables, and a indicator variable was added to retain visibility with a 1 indicating the value was replaced and a 0 indicating it was not.  
+
+Categorical variables: Missing values for categorical variables were replaced with 'missing' and a indicator variable was added to retain visibility with a 1 indicating the value was replaced and a 0 indicating it was not.  
 
 # Exploratory Data Analysis
 
@@ -235,10 +236,14 @@ upsell_ <- read.csv('data/orange_small_train_upselling.labels', header = FALSE)
 churn_[churn_$V1 < 0,] <- 0
 appetency_[appetency_$V1 < 0,] <- 0
 upsell_[upsell_$V1 < 0,] <- 0
+
+
+
+
 ```
 ## Imputing Missing Data
 
-The most frequent strategy used to impute missing data was to replace missing numeric values with a 0 and create a new binary variable indicating that the variable in the original dataset was missing. For categorical variables, all classes that represent less than 1% of the total observations were grouped into an "other" category, then a separate missing class was created. The categorical variables were replaced with the word 'missing' and a new variable was added with an indicator value set to 1 to indicate that the variable was imputed or to 0 to indicate no imputation.  Through this method the original variables include values for all observations and separately, a variable with missing values can be used for modeling as well in the case that the variable being present or absent is predictive. 
+The most frequent strategy used to impute missing data was to replace missing numeric values with a 0 and create a new binary variable indicating that the variable in the original data set was missing. For categorical variables, all classes that represent less than 1% of the total observations were grouped into an "other" category, then a separate missing class was created. The categorical variables were replaced with the word 'missing' and a new variable was added with an indicator value set to 1 to indicate that the variable was imputed or to 0 to indicate no imputation.  Through this method the original variables include values for all observations and separately, a variable with missing values can be used for modeling as well in the case that the variable being present or absent is predictive. 
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
 
@@ -311,7 +316,7 @@ As noted previously, with 230 original variables, plus additional dummy variable
 
 ## Appetency
 
-The first response variable to discuss is appetency. As defined in the task description on the KDD website, appetency is the propensity to buy a service or a product. Only 2% of observations have a positive inticator for appetency.
+The first response variable to discuss is appetency. As defined in the task description on the KDD website, appetency is the propensity to buy a service or a product. Only 2% of observations have a positive indicator for appetency.
 
 
 ### Logistic Regression with Elastic-Net Penalty
@@ -366,7 +371,7 @@ p <- ggplot(data.frame(TPR = unlist(perf@y.values),
 p
 ```
 
-The ROC curve below is constructed on out of sample data, showing that the logistic regression model performs very well for appetency.
+The ROC curve above is constructed on out of sample data, showing that the logistic regression model performs very well for appetency.
 
 
 ### Decision Tree
@@ -426,9 +431,7 @@ p
 ### K-Nearest Neighbors & Naïve Bayes
 The variable selection process for appetency was based on the smallest deviance of each variable.  This variable selection process resulted in 31 variables out of 230 with deviance of 186.294 or less based on the Calibration data set.  The Calibration data set is a 10% random selection of observations from the original data set.  
 
-###comparison of Variables Identified by Each Method
 
-TO BE ADDED LATER
 
 ## Churn
 
@@ -510,12 +513,11 @@ p <- ggplot(data.frame(TPR = unlist(perf@y.values),
   attributes(performance(pred, 'auc'))$y.values[[1]]))
 p
 ```
-The ROC curve above is on the out of sample data and performs poorly, although the ROC curve on the in sample data, which is not displayed here, performed well. This indicates that the model is overfit and will require additional tuning. Options include changing the requirements for leaf and split sizes and trying the random forest with a subset of variables such as the ones selected by regularized logistic regression.
+The ROC curve above is on the out of sample data and performs poorly, although the ROC curve on the in sample data, which is not displayed here, performed well. This indicates that the model is over fit and will require additional tuning. Options include changing the requirements for leaf and split sizes and trying the random forest with a subset of variables such as the ones selected by regularized logistic regression.
 
 ### K-Nearest Neighbors & Naïve Bayes
 
 The variable selection process for churn was based on the smallest deviance of each variable.  This variable selection process resulted in 47 variables out of 230 with deviance of 291.862 or less based on the Calibration data set.  The Calibration data set is a 10% random selection of observations from the original data set.
-
 
 ## Up-Sell
 
@@ -559,7 +561,7 @@ summary(upsell_tree)
 
 ### Random Forest
 
-The Random Forest classifier selected nearly 200 predictor variables as having significant predictive value for up-sell, which does not help in reducing the number of variables for modeling. The Variable Importance plot below does includ Var126 which shows as an important variable in the Decision tree.
+The Random Forest classifier selected nearly 200 predictor variables as having significant predictive value for up-sell, which does not help in reducing the number of variables for modeling. The Variable Importance plot below does include Var126 which shows as an important variable in the Decision tree.
 ```{r rf_upsell, echo=FALSE, fig.width=7, fig.height=4}
 plot_df = data.frame(churn_rf$importance)
 plot_df$Variable <- factor(row.names(plot_df))
@@ -593,7 +595,7 @@ knitr::read_chunk('script_for_paper.R')
   
 ## Train/Test Data
 
-A 75/25 split was selected for training and testing and all models used the same training and testing data to allow good omparisons across the model output.  
+A 75/25 split was selected for training and testing and all models used the same training and testing data to allow good comparisons across the model output.  
  
 ```{r, eval=FALSE, echo=FALSE}
 # set seed to make reporducable results
@@ -607,26 +609,26 @@ test <- df[-train_ind, ]
 ```
 
 ## Appetency
-The first series of models focussed on appetency, which is the propensity to buy a service or a product, for which only 2% of observations have a positive inticator.  Multiple models where completed including Naïve Bayes, several version of Random Forest, Logistic Regression, and Support Vector Machines. A comparative ROC curve appears at the end of the commentary below and for appetency, several of the models are approaching the In-House value of the original company Orange, with one of the Random Forest producing an AUC of .84 just behind the In-House model of .85. 
+The first series of models focus on appetency, which is the propensity to buy a service or a product, for which only 2% of observations have a positive indicator.  Multiple models where completed including Naïve Bayes, several version of Random Forest, Logistic Regression, and Support Vector Machines. A comparative ROC curve appears at the end of the commentary below and for appetency, several of the models are approaching the In-House value of the original company Orange, with several models producing an AUC of .82 just behind the In-House model of .85. 
 
 ### Naïve Bayes
-The Naïve Bayes technique was applied in a computational EDA manner to obtain the highest AUC score for appetency. The variable selection process was based on the smallest deviance of each variable and resulted in selecting 31 of the 230 variables with deviance of 186.294 based on a calibration data set consiting of a 10% random selection of observations from the original data set.
+The Naïve Bayes technique was applied in a computational EDA manner to obtain the highest AUC score for appetency. The variable selection process was based on the smallest deviance of each variable and resulted in selecting 31 of the 230 variables with deviance of 186.294 based on a calibration data set consisting of a 10% random selection of observations from the original data set.
 
-The resulting Naïve Bayes model using the selected variables produced an overfit model with a very high AUC Score on the trining set of 0.9619 an AUC Score with the Test data of only 0.8, for a 16-point difference.  Relative to the other models, Naïve Bayes performs acceptably at a .8 AUC, but, is 4 points behind the leader of .84. 
+The resulting Naïve Bayes model using the selected variables produced an over fit model with a very high AUC Score on the training set of 0.9619 an AUC Score with the Test data of only 0.78, for a 18-point difference.  Relative to the other models, Naïve Bayes performs acceptably at a .78 AUC, but, is 4 points behind the leader of .84. 
 
 ### Random Forest  
-The Random Forest classifier was also used for appetency with parameters set to number of trees = 50 and minimum bucket size =10 . The first model was built choosing all the 230 variables and the imputed variables. This resulted in a random forest model with over 200 variables. This model performed well on the training set at 98.6% accurate, however when applied to the testing data set it peformed poorly.  
+The Random Forest classifier was also used for appetency with parameters set to number of trees = 50 and minimum bucket size =10 . The first model was built choosing all the 230 variables and the imputed variables. This resulted in a random forest model with over 200 variables. This model performed well on the training set at 98.6% accurate, however when applied to the testing data set it performed poorly.  
 
-Multiple models were created using a subset of variables based on importance - top 25 and top 50 variables. These models did have a high accuracy in the training set but did not perform well on the test data set.  Models were created using the sample size option (sampsize = c(10,30)) , this allows the algorithm to randomly draw between 10 and 30 from two values of appetency = 0 and 1 to grow the tree. This improved the accuracy of the model, but the results on the test data set were still not very high. Area under the curve (AUC) is used to determine goodness of fit for the model. AUC for Random forest model for Appetency in test data is 0.68, whicih is only slightly better than random selection. 
+Multiple models were created using a subset of variables based on importance - top 25 and top 50 variables. These models did have a high accuracy in the training set but did not perform well on the test data set.  Models were created using the sample size option (sampsize = c(10,30)) , this allows the algorithm to randomly draw between 10 and 30 from two values of appetency = 0 and 1 to grow the tree. This improved the accuracy of the model, but the results on the test data set were still not very high. Area under the curve (AUC) is used to determine goodness of fit for the model. AUC for Random forest model for Appetency in test data is 0.68, which is only slightly better than random selection. 
 
 #### Random Forest 2
-A second approach to Random Forest was attempted using an alternate method. Due to the low number of positive observations for appetency, a balancing method was applied. Before fitting the Random Forest model, each observation showing a positive value for appetency in the training set was copied three times, so that there were four copies of each positive record. This oversampling of positive appetency cases was intended to make the Random Forest model predict 1 for appetency more often by changing the ratio of positive and negative cases in the data (as only 2% of the observations had a positive value for appetency). This method performed very well and is currently leading all models with an AUC score of .84.
+A second approach to Random Forest was attempted using an alternate method. Due to the low number of positive observations for appetency, a balancing method was applied. Before fitting the Random Forest model, each observation showing a positive value for appetency in the training set was copied three times, so that there were four copies of each positive record. This oversampling of positive appetency cases was intended to make the Random Forest model predict 1 for appetency more often by changing the ratio of positive and negative cases in the data (as only 2% of the observations had a positive value for appetency). This method performed very well and is currently leading all models with an AUC score of .81.
 
 ### Logistic Regression
-Logistic regression was also completed using a complement of method. Logistic Regression with a LASSO shrinkage approach resulted in the bset model with 54 remaining variables and an AUC score of .81, making it the second best model behind the Random Forest model noted above.
+Logistic regression was also completed using a complement of methods. Logistic Regression with a LASSO shrinkage approach resulted in the best model with 54 remaining variables and an AUC score of .81, making it the second best model behind the Random Forest model noted above.
 
 #### Invesitigative Variable Selection
-Both Decision Trees and the LASSO method were used to identified the most effective vaiables and manual variable selection was also performed to increase AUC, as described below.
+Both Decision Trees and the LASSO method were used to identified the most effective variables and manual variable selection was also performed to increase AUC, as described below.
 
 #### Decision Tree Variable selection
 Fitting a naive decision tree on the training data set produces a tree constructed using minsplit (the minimum number of observations that must exist in a node in order for a split) and minbucket (the minimum number of observations in any terminal <leaf> node) is set to the values 100 and 10 respectively. The following six variables were identified as interesting with regards to appetency: Var126, Var204_dummy_RVjC, Var218_dummy_cJvF, Var25, Var38, and Var57.    
@@ -639,7 +641,7 @@ A graphical analysis (not shown) of these 6 variables revealed the following:
 6)	Relatively similar counts of appetency across all values of Var57. 
 
 ##### Goodness-of-Fit of Decision Tree Variables  
-Using the variables obtained from the decision tree variable selection step, a logistic regression model was fit on the training data set using appetency as a target. Only three variables were identified as statistically significant. An ANOVA analysis between the full model containing all 6 variables and a reduced model containing the three statistically significant variables indicated that the reduced model fits as well as the full model. The variables are Var126, Var218_dummy_cJvF and Var38. A chi-square goodness of fit test for the overall model is significant at p=0.05. The AUC score, however was below that of the model identified through LASSO.  
+Using the variables obtained from the decision tree variable selection step, a logistic regression model was fit on the training data set using appetency as a target. Only three variables were identified as statistically significant. An ANOVA analysis between the full model containing all 6 variables and a reduced model containing the three statistically significant variables indicated that the reduced model fits as well as the full model. The variables are Var126, Var218_dummy_cJvF and Var38. A chi-square goodness of fit test for the overall model is significant at p=0.05. The AUC score, however was below that of the model identified through LASSO.  The model with these three variables is shown in the ROC curve as logistic_regression with an AUC of .81.  
 
 #### LASSO Variable Selection   
 Using the LASSO (shrinkage parameter, lambda=1) a selection of 54 variables where identified when the shrinkage parameter, lambda, is at its minimum. Several variables were not statistically significant, however, an ANOVA analysis between the full model containing all 54 variables identified by the LASSO, fit better than a reduced model in which statistically insignificant variables were dropped. A chi-square goodness of fit test for the overall model is significant at p=0.05.  
@@ -652,14 +654,20 @@ The Nearest Neighbor K technique was applied in a computational EDA manner to ob
 
 The resulting knn model used the selected variables and k = 200.  The model showed over-fitting as the AUC Score with the train data was 0.9904 but the AUC Score with the test data set is only 0.6548 which while significantly above 0.50 of a random guess is lagging behind other models. 
 
+### Ensemble Models
+Two ensemble approaches were completed with for Appetency, a Vote Ensemble and Stacked_RF model. Both models resulted in a .82 AUC value which is the same as the value reached with the logistic regression 2 model, indicating that no additional value was accomplished with the additional complexity of the ensemble models. 
+
 ### Model Performance
 ```{r app ROC, echo = FALSE, fig.width = 7, fig.height=4}
 ```
 ```{r app AUC, echo = FALSE, results = 'asis'}
 ```
 
+###Variable Comparison by Model for Appetency
+The appendix includes a comparative table of variables by model. For the Logistic Regression 2 and Random Forest 2 Model, all variables were utilized, with a Regularization process on the Logistic Model to remove the least impacting variables.  The table in the appendix only lists the variables that were shared with other models to see the commonality of variables (I.E. since the Logistic2 and RandomForest2 contain a large number of variables, only those variables shared with other models are presented in the table). Of particular note is that the logistic_regression model with only 3 variables performed within 1 point of even the ensemble models. Additionally, looking back at Table 7, and other variable selection methods, the Decision Tree identified all three variables as being important, and two were identified by the Elastic Net Penalty model and Random Forest identified one of those variables, Var126. For Appetency, variable selection efforts were able to surface the most important variables.
+
 ## Churn
-The next series of models focussed on Churn, which is the likelihood of a customer no longer purchasing the goods or services of the company, for which 7% of observations have a positive inticator (which in this case is a negative outcome as in the customer has churned).  Multiple models where completed including Naïve Bayes, several version of Random Forest, Logistic Regression, and Support Vector Machines. A comparative ROC curve appears at the end of the commentary below and for Churn.  Several of the models are approaching the In-House value of the original company Orange, with one of the Random Forest producing an AUC of .72 just behind the In-House model of .74. 
+The next series of models focused on Churn, which is the likelihood of a customer no longer purchasing the goods or services of the company, for which 7% of observations have a positive indicator (which in this case is a negative outcome as in the customer has churned).  Multiple models where completed including Naïve Bayes, several version of Random Forest, Logistic Regression, and Support Vector Machines. A comparative ROC curve appears at the end of the commentary below and for Churn.  Several of the models are approaching the In-House value of the original company Orange, with one of the Random Forest producing an AUC of .72 just behind the In-House model of .74. 
 
 ### Naïve Bayes
 The Naïve Bayes technique was applied in a computational EDA manner to obtain the highest AUC score for churn. The variable selection process was based on the smallest deviance of each variable resulted in 47 variables out of 230 with deviance of 291.862 based on a calibration data set of a 10% random selection of observations from the original data set.
@@ -689,24 +697,32 @@ Logistic Regression modeling started with variables that were selected by a deci
 9 variables remained which were used to fit the logistic regression model: Var126, Var217_dummy_missing, Var211_dummy_L84s, Var73, Var126_missing, Var229_dummy_missing, Var113, Var22_missing, and Var65. The chi-square goodness of fit test produced a p-value=0.2439 and the Logistic Model using the Decision Tree selected variables was not found to have significant predictive capacity.
 
 #### LASSO Variable Selection
-15 variables were identified at log (lambda), one standard error from the minimum using the LASSO method and were the following: Var7, Var73, Var113, Var126, Var22_missing, Var28_missing, Var126_missing, Var205_dummy_sJzTlal, Var206_dummy_IYzP, Var210_dummy_g5HH, Var212_dummy_NhsEn4L, Var217_dummy_other, Var218_dummy_cJvF, Var218_dummy_missing, and Var229_dummy_missing.
+15 variables were identified at log (lambda), one standard error from the minimum using the LASSO method and were the following: Var7, Var73, Var113, Var126, Var22_missing, Var28_missing, Var126_missing, Var205_dummy_sJzTlal, Var206_dummy_IYzP, Var210_dummy_g5HH, Var212_dummy_NhsEn4L, Var217_dummy_other, Var218_dummy_cJvF, Var218_dummy_missing, and Var229_dummy_missing. 
 
 #### GOF on LASSO variables
-Using the variables obtained from our LASSO exploratory model, a logistic regression model was fit for churnt. Several variables were either NA or insignificant and therefore elminated from further consideration. This resulted in the following 10 variables that were used in fitting logistic model: Var7, Var73, Var113, Var126, Var205_dummy_sJzTlal, Var210_dummy_g5HH, Var212_dummy_NhsEn4L, Var217_dummy_other, Var218_dummy_cJvF, and Var229_dummy_missing. The chi-square goodness of fit test produced a p-value=0.6240 and this approach was also discontinued.
+Using the variables obtained from our LASSO exploratory model, a logistic regression model was fit for churn. Several variables were either NA or insignificant and therefore eliminated from further consideration. This resulted in the following 10 variables that were used in fitting logistic model: Var7, Var73, Var113, Var126, Var205_dummy_sJzTlal, Var210_dummy_g5HH, Var212_dummy_NhsEn4L, Var217_dummy_other, Var218_dummy_cJvF, and Var229_dummy_missing. The chi-square goodness of fit test produced a p-value=0.6240 and this approach was also discontinued.
 
 #### Simple LASSO
 Finally, a simple logistic regression model with LASSO shrinkage was fit including all of the variables. The results applied to the test data set show produced an AUC score of .71 which is within one point of the best model identified and within among the best models identified for churn. In the ROC curve this method is identified as logistic regression 2.
 
+### Vote Ensemble
+A final model was created, combining the responses from the two logistic regression models and two random forest models through an averaging to create an additional model called 'vote ensemble'. To ensure that each model contributed equally to the ensemble, the predictions were scaled to a range of 0 - 1 before combining into the ensemble. The final result of this model was an AUC of .74 which matches the in-house value for Churn but remains about 1.5 points below the best model from the original KDD competition. 
 
 ### Model Performance
 ```{r Churn ROC, echo = FALSE, fig.width = 7, fig.height = 6}
 ```
 ```{r churn AUC, echo = FALSE, results = 'asis'}
 ```
-\pagebreak
+
+
+
+###Variable Comparison by Model for Churn
+The appendix includes a comparative table of variables by model. For the Logistic Regression 2 and Random Forest 2 Model, all variables were utilized, with a Regularization process on the Logistic Model to remove the least impacting variables.  The table in the appendix only lists the variables that were shared with other models to see the commonality of variables.  As with Appetency, the Logistic model with a small number of variables, only 10, also performed very well, was the highest performing model with an AUC of .73, just 1 point below the In_House model.  The Variable selection method was less effective for Churn as it highlighted only three of the variables that were ultimately included in the logistic model, 113, 126, and 218.  There are quite a few shared variables between Naive Bayes and the RandomForest1 model and with the Logistic Model as well
+which validates the use of these variables.  Given that many of these variables are from the same area of the data, i.e. the low 200s, (Var205_dummy_sJzTlal, Var210_dummy_g5HH, Var212_dummy_NhsEn4L, Var217_dummy_other, Var218_dummy_cJvF) and they relate to levels within the variable, and this is churn one has to wonder if these are incident trackers or some type of customer satisfaction measure which would be highly likely to predict churn.
+
 
 ## Up-Sell
-The final series of models focussed on upselling, the propensity of the customer to purchase more expensive goods and services of the company, for which 7% of observations have a positive inticator.  Multiple models where completed including Naïve Bayes, several version of Random Forest, Logistic Regression, and Support Vector Machines. A comparative ROC curve appears at the end of the commentary below and for Up-sell.  AUC model results for Up-sell lag the results of other models with 4 points between the best model at .86 and the In-House model of .90. 
+The final series of models focused on up selling, or the propensity of the customer to purchase more expensive goods and services of the company, for which 7% of observations have a positive indicator.  Multiple models where completed including Naïve Bayes, several version of Random Forest, Logistic Regression, and Support Vector Machines. A comparative ROC curve appears at the end of the commentary below and for Up-sell.  AUC model results for Up-sell lag the results of other models with 4 points between the best model at .86 and the In-House model of .90. 
 
 ### Naïve Bayes
 The Naïve Bayes technique was applied in a computational EDA manner to obtain the highest AUC score for up-sell.  The variable selection process was based on the smallest deviance of each variable, resulting in 51 variables out of 230 with deviance of 504.483 based on a calibration  of a 10% random selection of observations from the original data set.  
@@ -715,13 +731,13 @@ The resulting Naive Bayes model using the selected variables shows over-fitting 
 
 
 ### Random Forest
-The Random Forest classifier was also used to build a classification model for up-sell on the training data set. The parameters chosen were number of trees = 50 and minimum bucket size = 10 . The first model was built using all 230 original variables plus the imputed variables and resulted a Random Forest model with over 200 variables. While the model performed well on the training data set, it did not do well on the test data set. A second model was built using the top 50 variables based on the variable importance from the first model and the method of balanced sampling, duplicating observations with a positive value for upselling as previously described was also used. This model showed higher accuracy in the test data set. The model was able to detect up-sell=1 scenarios better than the first model with an AUC Score on the test data of 0.86 and this result is displayed in the ROC curve as random_forest2.
+The Random Forest classifier was also used to build a classification model for up-sell on the training data set. The parameters chosen were number of trees = 50 and minimum bucket size = 10 . The first model was built using all 230 original variables plus the imputed variables and resulted a Random Forest model with over 200 variables. While the model performed well on the training data set, it did not do well on the test data set. A second model was built using the top 50 variables based on the variable importance from the first model and the method of balanced sampling, duplicating observations with a positive value for up selling as previously described was also used. This model showed higher accuracy in the test data set. The model was able to detect up-sell=1 scenarios better than the first model with an AUC Score on the test data of 0.86 and this result is displayed in the ROC curve as random_forest2.
 
 ### Logistic Regression
 A logistic regression model was fitted for with a LASSO shrinkage parameter. Several attempts at feature engineering were made, three interaction variables were added based on the results of the decision tree discussed in the EDA portion (variable 126 and 28, variable 28 and 153 and variable 125 and 81). Also a squared version of every numeric variable was added to the data. This created a very large data set and the model had to be trained over a period of several hours. The results showed an improvement over some other algorithms, but overall results failed to match other models and further work was halted.  
 
 ### K-Nearest Neighbors
-The Nearest Neighbor K technique was applied in a computational EDA manner to obtain the highest AUC score for up-sell. The variable selection process was based on the smallest deviance of each variable and resulted in the selection of 51 variables out of 230 with deviance of 504.483 based on a calibration data set of a 10% random selection of observations from the original data set.  
+The K Nearest Neighbor technique was applied in a computational EDA manner to obtain the highest AUC score for up-sell. The variable selection process was based on the smallest deviance of each variable and resulted in the selection of 51 variables out of 230 with deviance of 504.483 based on a calibration data set of a 10% random selection of observations from the original data set.  
 
 The resulting knn model used the selected variables and k = 200, shows over fitting as the AUC Score with the training data is 0.9878 but the AUC Score with the test data is 0.7021. The AUC for the testing data is significantly above 0.50 of a random guess, but the results lag other models.
 
@@ -731,28 +747,105 @@ The resulting knn model used the selected variables and k = 200, shows over fitt
 ```
 ```{r upsell AUC, echo = FALSE, results = 'asis'}
 ```
-\pagebreak
+
+
+###Variable Comparison by Model for Upsell
+The appendix includes a comparative table of variables by model. For the Logistic Regression 2 and Random Forest 2 Model, all variables were utilized, with a Regularization process on the Logistic Model to remove the least impacting variables.  The Random Forest Model ended up with the highest AUC score utilizing all of the variables, so, variable selection was much less beneficial in this case.  As can be seen in the variables comparison, the models used ended up using a large number of variables. The Random Forest 1 model ended up using the top 25 variables and only produced an AUC of .82, four points behind the best performing model.  This issue was actually noted during the variable selection process with Random Forest showing 200 variables having significant predictive value and the Decision Tree diagram was not displayed here-in as the number of branches made it impossible to interpret.  This target variable was the hardest to predict at the level of the In_House Model though it has the highest AUC score of any of the models. 
 
 # Comparison of Results
 
-TO BE ADDED IN FINAL ROUND
+The overall results of this modeling exercise were quite high with the Ensemble Model for Churn matching the In_House model, several models for Churn falling within 3 points of the In House model and the worst performing model for Upsell only having a separation of 4 points from the In House model, while also proving an AUC score in the mid 80s.  
 
 # Conclusions
+This analysis set out to match or exceed the In-House Results of Orange, a telecom company in France. Overall, the team was able to match the In-house results of a .74 AUC score for Churn.  The models for Appetency and Upsell were also both within 4 points of the In-house model. Given that there were a large number of missing values with anonymized data, the In-house team likely had more insight into what the variables represented and therefore could engage more thoughtful data replacement approaches. 
 
-TO BE ADDED IN FINAL ROUND
+As multiple approaches were taken with this data, both being highly selective with the variables being entered as well as throwing all of the variables in and relying on regularization, the range between results is very interesting. For instance, for Appetency, only 3 points separate the model with the highest AUC from the model with the lowest AUC. The largest range was on Up-Sell for which variable selection did not produce a lot of value in terms of reducing the number of variables to be used. Outside of Up-Sell, attempts at variable selection definitely were successful in identify some of the most important variables, though not necessarily all of them.
+
 
 # Appendix
 
 For the interested reader, all of the code used to create the models can be found at:  
 https://github.com/jayswinney/454-kdd2009  
 
-# Next Steps
-A number of items remain to be added for the final submission the most significant of which are ensemble models which are being developed to combine the results of the best performing models to date.  
 
-1. Comparitive variable tables for variable selection and modeling
-2. Ensemble Models
-3. Comparison of Results
-4. Conclusion
+###Comparison of Variables Tables
+
+The tables on the following pages show the variables used by each model with an X. Only variables used in more than one of the models have been included here and two of the models used all of the variables, the RandomForest2 and LogisticRegression2 models took this approach. As this would represent nearly 500 variables with the original and dummy variables, the variables from the other models dictated what was displayed.
+
+```{r, echo=FALSE, results = 'asis'}
+VariablesApp <- c("Var6",	"Var13",	"Var21",	"Var22",	"Var24",	"Var25",	"Var28",	"Var38",	"Var51_missing",	"Var63",	"Var65",	"Var68",	"Var69",	"Var73",	"Var74",	"Var74_missing",	"Var76",	"Var81",	"Var83",	"Var85",	"Var94",	"Var109",	"Var109_missing",	"Var112",	"Var113",	"Var119",	"Var123",	"Var125",	"Var126",	"Var132",	"Var133",	"Var134",	"Var140",	"Var149",	"Var153",	"Var160",	"Var163",	"Var177",	"Var180",	"Var189",	"Var192",	"Var193",	"Var198",	"Var199",	"Var200",	"Var201",	"Var202",	"Var204",	"Var206",	"Var211",	"Var212",	"Var214",	"Var216",	"Var217",	"Var218",	"Var218_dummy_cJvF",	"Var219",	"Var220",	"Var221",	"Var222",	"Var225",	"Var226",	"Var227",	"Var228",	"Var229")
+
+L_Reg <- c("",	"",	"",	" ",	"",	" ",	"",	"X",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"X",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"X",	"",	"",	"",	"",	"",	"",	"",	"",	"")
+
+
+L_Reg2 <- c("X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X")
+
+Naive_Bayes <-c("",	"",	"",	"",	"",	"",	"X",	"",	"",	"",	"",	"",	"",	"X",	"",	"",	"X",	"X",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"X",	"",	"X",	"X",	"",	"",	"X",	"X",	"",	"",	"",	"X",	"X",	"X",	"X",	"X",	"X",	"",	"X",	"X",	"X",	"X",	"",	"X",	"X",	"X",	"X",	"",	"",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X")
+
+RF <-c("X",	"X",	"X",	"X",	"X",	"X",	"X",	"",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"",	"",	"X",	"",	"",	"",	"X",	"",	"X",	"X",	"",	"X",	"",	"X",	"",	"X",	"",	"X",	"X",	"",	"",	"X",	"X",	"",	"X",	"")
+
+RF2 <-c("X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X")
+
+
+allvar <- cbind(VariablesApp, L_Reg, L_Reg2,Naive_Bayes, RF, RF2 )
+
+vartable <- as.data.frame(allvar, quote = FALSe, right = FALSE, row.names = FALSE)
+print(xtable(vartable))
+
+
+```
+
+
+```{r, echo=FALSE, results = 'asis'}
+
+
+
+VariablesChurn <- c("Var6",	"Var7",	"Var13",	"Var16",	"Var21",	"Var22",	"Var22_missing",	"Var24",	"Var25",	"Var28",	"Var28_missing",	"Var38",	"Var51",	"Var65",	"Var65_missing",	"Var72",	"Var72_missing",	"Var73",	"Var74",	"Var76",	"Var81",	"Var83",	"Var85",	"Var94",	"Var109",	"Var109_missing",	"Var112",	"Var113",	"Var119",	"Var123",	"Var125",	"Var126",	"Var126_missing",	"Var134",	"Var140",	"Var144",	"Var149",	"Var153",	"Var160",	"Var163",	"Var189",	"Var192",	"Var193",	"Var195",	"Var197",	"Var198",	"Var199",	"Var200",	"Var201",	"Var203",	"Var204",	"Var205",	"Var205_dummy_sJzTlal",	"Var206",	"Var206_dummy_IYzP",	"Var207",	"Var210",	"Var210_dummy_g5HH",	"Var211",	"Var212",	"Var212_dummy_NhsEn4L",	"Var214",	"Var216",	"Var217",	"Var217_dummy_other",	"Var218",	"Var218_dummy_cJvF",	"Var218_dummy_missing",	"Var219",	"Var220",	"Var221",	"Var222",	"Var223",	"Var225",	"Var226",	"Var227",	"Var228",	"Var229",	"Var229_dummy_missing")
+
+L_Reg <- c("",	"X",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"X",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"X",	"",	"",	"",	"X",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"X",	"",	"",	"",	"",	"X",	"",	"",	"X",	"",	"",	"",	"X",	"",	"X",	"X",	" ",	" ",	" ",	" ",	" ",	" ",	" ",	" ",	" ",	" ",	"X")
+
+
+L_Reg2 <- c("X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X","X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X")
+
+Naive_Bayes <-c("X",	"X",	"X",	"X",	"",	"",	"",	"X",	"",	"X",	"",	"X",	"X",	"X",	"",	"",	"",	"X",	"X",	"",	"X",	"",	"",	"",	"",	"",	"",	"X",	"X",	"X",	"X",	"X",	"",	"",	"X",	"X",	"",	"X",	"X",	"",	"X",	"X",	"X",	"",	"X",	"X",	"X",	"X",	"",	"",	"X",	"X",	"",	"X",	"",	"X",	"X",	"",	"",	"X",	"",	"X",	"X",	"X",	"",	"X",	"",	"",	"X",	"X",	"X",	"X",	"",	"X",	"X",	"X",	"X",	"X",	" ")
+
+RF <-c("X",	"",	"X",	"",	"X",	"X",	"",	"X",	"X",	"X",	"",	"X",	"",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"",	"",	"X",	"X",	"",	"",	"",	"",	"X",	"X",	"X",	"",	"X",	"",	"",	"",	"X",	"",	"X",	"X",	"",	"",	"X",	"",	"",	"",	"",	"",	"",	"",	"",	"",	"X",	"X",	"X",	"",	"X",	"X",	"")
+
+RF2 <-c("X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X","X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X")
+
+
+allvar <- cbind(VariablesChurn, L_Reg, L_Reg2,Naive_Bayes, RF, RF2 )
+
+vartable <- as.data.frame(allvar, quote = FALSE, right = FALSE, row.names = FALSE)
+
+print(xtable(vartable))
+
+
+
+```
+
+
+
+```{r, echo=FALSE, results = 'asis'}
+VariablesUPSell <- c("Var6",	"Var7",	"Var13",	"Var16",	"Var21",	"Var22",	"Var24",	"Var25",	"Var28",	"Var38",	"Var73",	"Var74",	"Var76",	"Var81",	"Var83",	"Var85",	"Var109",	"Var112",	"Var113",	"Var119",	"Var123",	"var125",	"Var126",	"Var133",	"Var134",	"Var135",	"Var140",	"Var144",	"Var149",	"Var153",	"Var160",	"Var163",	"Var188",	"Var192",	"Var193",	"Var197",	"Var199",	"Var200",	"Var204",	"Var206",	"Var210",	"Var211",	"Var212",	"Var214",	"Var216",	"Var217",	"Var218",	"Var219",	"Var221",	"Var223",	"Var225",	"Var226",	"Var227",	"Var228",	"Var229")
+
+
+L_Reg <- c("X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X", "X", "X")
+
+Naive_Bayes <-c("X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"",	"X",	"X",	"X",	"X",	"X",	"",	"X",	"X",	"X",	"X",	"X",	"X",	"",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X")
+
+RF <-c("X",	"",	"",	"",	"X",	"X",	"",	"X",	"X",	"X",	"",	"",	"X",	"X",	"X",	"",	"X",	"X",	"X",	"X",	"X",	"",	"X",	"X",	"",	"",	"",	"X",	"X",	"X",	"X",	"",	"",	"",	"",	"",	"",	"",	"X",	"X",	"",	"",	"X",	"",	"X",	"",	"",	"",	"",	"",	"",	"X",	"",	"",	"")
+
+RF2 <-c("X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X",	"X", "X", "X")
+
+
+allvar <- cbind(VariablesUPSell, L_Reg, Naive_Bayes, RF, RF2 )
+
+vartable <- as.data.frame(allvar, quote = FALSe, right = FALSE, row.names = FALSE)
+print(xtable(vartable))
+
+```
+
 
 
 
