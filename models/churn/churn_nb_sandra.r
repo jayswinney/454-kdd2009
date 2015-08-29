@@ -78,8 +78,6 @@ test <- d[test_ind, ]
 tiny_ind <- sample(seq_len(nrow(d)), size = floor(0.10 * nrow(d)))
 dCal <- d[tiny_ind, ]
 
-
-
 ###  SETTING OTHER VARIABLES:
 outcomes=c('churn','appetency','upselling')
 
@@ -115,6 +113,7 @@ mkPredC <- function(outCol,varCol,appCol) {
 for(v in catVars) {
   pi <- paste('pred',v,sep='')
   train[,pi] <- mkPredC(train[,outcome],train[,v],train[,v])
+  ensemble_test[,pi] <- mkPredC(train[,outcome],train[,v],ensemble_test[,v])
   dCal[,pi] <- mkPredC(train[,outcome],train[,v],dCal[,v])
   test[,pi] <- mkPredC(train[,outcome],train[,v],test[,v])
 }
@@ -153,6 +152,7 @@ for(v in numericVars) {
   pi <- paste('pred',v,sep='')
   train[,pi] <- mkPredN(train[,outcome],train[,v],train[,v])
   test[,pi] <- mkPredN(train[,outcome],train[,v],test[,v])
+  ensemble_test[,pi] <- mkPredN(train[,outcome],train[,v],ensemble_test[,v])
   dCal[,pi] <- mkPredN(train[,outcome],train[,v],dCal[,v])
   aucTrain <- calcAUC(train[,pi],train[,outcome])
   if(aucTrain>=0.55) {

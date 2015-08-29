@@ -24,8 +24,7 @@ dirs <- c('c:/Users/jay/Dropbox/pred_454_team',
           'c:/Users/uduak/Dropbox/pred_454_team',
           'C:/Users/Sandra/Dropbox/pred_454_team',
           '~/Manjari/Northwestern/R/Workspace/Predict454/KDDCup2009/Dropbox',
-          'C:/Users/JoeD/Dropbox/pred_454_team'
-          )
+          'C:/Users/JoeD/Dropbox/pred_454_team')
 
 for (d in dirs){
   if(dir.exists(d)){
@@ -90,7 +89,7 @@ test <- df_mat.frame[test_ind, ]
 #Exploratory decision Tree (Classification) for appetency
 library(rpart)
 library(rpart.plot)
-df_mat.frame$appetency <- factor(df_mat.frame$appetency)
+df_mat.frame$appetency <- as.factor(df_mat.frame$appetency)
 AppTree <- rpart(appetency~.,method="class",data = df_mat.frame,
                  control=rpart.control(minsplit=10, minbucket=10, cp=0.001))
 AppTree
@@ -130,36 +129,13 @@ par(mfrow=c(1,1))
 #PERFORMING FEATURE SELECTION USING FSELECTOR
 
 #use random.forest.importance to calculate weight of each attribute
-weights = random.forest.importance(appetency~., train, importance.type = 1)
+weights = random.forest.importance(appetency~., df_mat.frame, importance.type = 1)
 print(weights)
 #use cutoff to obtain the top 30 attributes
 subset = cutoff.k(weights, 30)
-f = as.simple.formula(subset, "Appetency")
+f = as.simple.formula(subset, "appetency")
 print(f)
 
-# Evaluator to select feature subsets
-train$appetency <- as.factor(train$appetency)
-evaluator = function(subset) {
-  k = 5
-  set.seed(2)
-  ind = sample(5, nrow(train), replace = TRUE)
-  results = sapply(1:k, function(i) {
-    train.ev = train[ind ==i,]
-    test.ev  = test[ind !=i,]
-    tree.ev  = rpart(as.simple.formula(subset, "appetency"), train.ev)
-    error.rate = sum(test.ev$appetency!= predict(tree.ev,test.ev,
-                                                  type="class")) / nrow(test.ev)
-    return(1 - error.rate)
-  })
-  return(mean(results))
-}
-names(train)
-#Finding optimum feature subsets using hill climbing search:
-# attr.subset = hill.climbing.search(names(train)[!names(train) %in% 
-#                                                   "appetency"], evaluator)
-attr.subset = hill.climbing.search(names(train)[-552], evaluator)
-f = as.simple.formula(attr.subset, "appetency")
-print(f)
 
 
 #LOGISTIC REGRESSION WITH LASSO EDA/VARIABLE SELECTION
@@ -487,11 +463,68 @@ Rf.auc.test
 ?plot.performance
 library(ROCR)
 
-predapp <- prediction(logitLASSO.test,test$appetency)
+predapp <- prediction(logitRf.test,test$appetency)
 perfapp <- performance(predapp, "tpr", "fpr")
 plot(perfapp)
 abline(0,1,lty=8,col='grey')
 
+#4. Logistic regression with FSelector Random Forest selected variables
+class(train$appetency)
+train$appetency <- as.factor(train$appetency)
+m1 <- glm(appetency~Var28+Var34+Var38+Var44+Var58+Var64+Var67+Var75+
+                  Var81+Var84+Var95+Var124+Var125+
+                  Var126+Var140+Var144+Var152+Var162+Var171+Var177+
+                  Var181+Var126_missing+Var194_dummy_SEuy+
+                  Var197_dummy_0Xwj+Var197_dummy_487l+Var197_dummy_TyGl+
+                  Var197_dummy_z32l+Var204_dummy_YULl+Var204_dummy_15m3+
+                  Var204_dummy_4N0K+Var204_dummy_m_h1+Var205_dummy_VpdQ+
+                  Var205_dummy_sJzTlal+Var206_dummy_zm5i+Var206_dummy_43pnToF+
+                  Var208_dummy_kIsH+Var210_dummy_uKAI+Var210_dummy_other+
+                  Var211_dummy_L84s+
+                  Var212_dummy_NhsEn4L+Var216_dummy_other+
+                  Var216_dummy_7WwuNea+Var216_dummy_kZJtVhC+
+                  Var218_dummy_cJvF+Var218_dummy_UYBR+Var219_dummy_OFWH+
+                  Var223_dummy_M_8D+Var226_dummy_xb3V+Var226_dummy_fKCe+
+                  Var226_dummy_Aoh3+Var226_dummy_uWr3+Var226_dummy_7P5s+
+                  Var228_dummy_R4y5gQQWY8OodqDV,data=train, family = binomial)
+
+summary(m1)
+
+#Checking prediction quality on training
+logitRf2.train <- predict(m1,newdata =train,type = "response")
+# pRf2.app <- round(logitRf2.train)
+confusionMatrix(logitRf2.train,train$appetency)
+
+#Checking prediction quality on test
+logitRf2.test <- predict(m1,newdata=test,type = "c")
+# p.AppTest2 <- round(logitRf2.test)
+confusionMatrix(logitRf2.test,test$appetency)
+
+#How good is the Logistic model in-sample:
+logitRf2.train <- as.numeric(logitRf2.train)
+Rf2.scores <- prediction(logitRf2.train,train$appetency)
+plot(performance(Rf2.scores,'tpr','fpr'),col='red')
+abline(0,1,lty=8,col='grey')
+Rf2.auc <- performance(Rf2.scores,'auc')
+Rf2.auc
+
+#How good is the Logistic model out-sample:
+Rf2.scores.test <- prediction(logitRf2.test,test$appetency)
+#ROC plot for logistic regression
+plot(performance(Rf2.scores.test,'tpr','fpr'),col='red')
+abline(0,1,lty=8,col='grey')
+#AUC value
+Rf2.auc.test <- performance(Rf2.scores.test,'auc')
+Rf2.auc.test
+
+#plot multiple ROC curves
+?plot.performance
+library(ROCR)
+
+predapp2 <- prediction(logitRf2.test,test$appetency)
+perfapp2 <- performance(predapp2, "tpr", "fpr")
+plot(perfapp2)
+abline(0,1,lty=8,col='grey')
 
 # make logsitic regression predictions
 app_lreg_udy_pred <- predict(lrfitLASSO, test,
