@@ -49,11 +49,14 @@ upsell_rf_jay <- randomForest(x=train[,upsell.selVars], y=factor(train$upsell),
 
 
 upsell_rf_jay_predictions <- predict(upsell_rf_jay, test,
-                                        type = 'prob')[,2]
+                                     type = 'prob')[,2]
+
+upsell_ens_rf_jay_predictions <- predict(upsell_rf_jay, ensemble_test,
+                                         type = 'prob')[,2]
 
 pred <- prediction(upsell_rf_jay_predictions, test$upsell)
 perf <- performance(pred,'auc')
 perf@y.values
 
-save(list = c('upsell_rf_jay_predictions'),
+save(list = c('upsell_rf_jay_predictions', 'upsell_ens_rf_jay_predictions'),
      file = 'models/upsell/rf_jay.RData')

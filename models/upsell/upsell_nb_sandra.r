@@ -21,40 +21,7 @@
 ##################################################################################################
 ##################################################################################################
 
-
 ###   SET DIRECTORY PATH:
-dirs <- c('c:/Users/jay/Dropbox/pred_454_team',
-          'c:/Users/uduak/Dropbox/pred_454_team',
-          'C:/Users/Sandra/Dropbox/pred_454_team',
-          '~/Manjari/Northwestern/R/Workspace/Predict454/KDDCup2009/Dropbox',
-          'C:/Users/JoeD/Dropbox/pred_454_team'
-          )
-
-for (d in dirs){
-  if(dir.exists(d)){
-    setwd(d)
-  }
-}
-
-###   READ DATA FILES:
-d <- read.table('data/orange_small_train.data',
-                header=T,
-                sep='\t',
-                na.strings=c('NA',''))
-
-churn <- read.table('data/orange_small_train_churn.labels',
-                    header=F,sep='\t')
-d$churn <- churn$V1
-
-upselling <- read.table('data/orange_small_train_upselling.labels',
-                        header=F,sep='\t')
-d$upselling <- upselling$V1
-
-appetency <- read.table('data/orange_small_train_appetency.labels',
-                        header=F,sep='\t')
-d$appetency <- appetency$V1
-
-
 dirs <- c('c:/Users/jay/Dropbox/pred_454_team',
           'c:/Users/uduak/Dropbox/pred_454_team',
           'C:/Users/Sandra/Dropbox/pred_454_team',
@@ -146,6 +113,7 @@ mkPredC <- function(outCol,varCol,appCol) {
 for(v in catVars) {
   pi <- paste('pred',v,sep='')
   train[,pi] <- mkPredC(train[,outcome],train[,v],train[,v])
+  ensemble_test[,pi] <- mkPredC(train[,outcome],train[,v],ensemble_test[,v])
   dCal[,pi] <- mkPredC(train[,outcome],train[,v],dCal[,v])
   test[,pi] <- mkPredC(train[,outcome],train[,v],test[,v])
 }
@@ -184,6 +152,7 @@ for(v in numericVars) {
   pi <- paste('pred',v,sep='')
   train[,pi] <- mkPredN(train[,outcome],train[,v],train[,v])
   test[,pi] <- mkPredN(train[,outcome],train[,v],test[,v])
+  ensemble_test[,pi] <- mkPredN(train[,outcome],train[,v],ensemble_test[,v])
   dCal[,pi] <- mkPredN(train[,outcome],train[,v],dCal[,v])
   aucTrain <- calcAUC(train[,pi],train[,outcome])
   if(aucTrain>=0.55) {
@@ -270,8 +239,13 @@ print(plotROC(test$nbpred,test[,outcome]))
 
 #### Model Output .RData for Project:
 upsell_nb_sandra_model <- naiveBayes(as.formula(ff),data=train)
-upsell_nb_sandra_predictions <-predict(upsell_nb_sandra_model,newdata=test,type='raw')[,'TRUE']
+upsell_nb_sandra_predictions <-predict(upsell_nb_sandra_model,
+                                       newdata=test,type='raw')[,'TRUE']
+
+upsell_ens_nb_sandra_predictions <-predict(upsell_nb_sandra_model,
+                                           ensemble_test,type='raw')[,'TRUE']
 
 # save the output
-save(list = c('upsell_nb_sandra_model', 'upsell_nb_sandra_predictions'),
+save(list = c('upsell_nb_sandra_model', 'upsell_nb_sandra_predictions',
+              'upsell_ens_nb_sandra_predictions'),
      file = 'models/upsell/upsell_nb_sandra.RData')

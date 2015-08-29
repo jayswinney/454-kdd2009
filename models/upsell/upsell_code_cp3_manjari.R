@@ -17,7 +17,7 @@ library(randomForest)
 library(rpart)
 library(rpart.plot)
 library(rattle)
-# library(GA)
+library(GA)
 
 ##  PACKAGES NEEDED FOR THE CONFUSION MATRIX
 #install.packages("lme4")
@@ -25,21 +25,21 @@ library(lme4)
 #install.packages("caret")
 library(caret)
 
-dirs <- c('c:/Users/jay/Dropbox/pred_454_team',
-         'c:/Users/uduak/Dropbox/pred_454_team',
-         'C:/Users/Sandra/Dropbox/pred_454_team',
-         '~/Manjari/Northwestern/R/Workspace/Predict454/KDDCup2009/Dropbox',
-         'C:/Users/JoeD/Dropbox/pred_454_team'
-)
+#dirs <- c('c:/Users/jay/Dropbox/pred_454_team',
+#          'c:/Users/uduak/Dropbox/pred_454_team',
+#          'C:/Users/Sandra/Dropbox/pred_454_team',
+#          '~/Manjari/Northwestern/R/Workspace/Predict454/KDDCup2009/Dropbox',
+#          'C:/Users/JoeD/Dropbox/pred_454_team'
+#)
 
-for (d in dirs){
- if(dir.exists(d)){
-   setwd(d)
- }
-}
+#for (d in dirs){
+#  if(dir.exists(d)){
+#    setwd(d)
+#  }
+#}
 
 
-# setwd("~/Manjari/Northwestern/R/Workspace/Predict454/KDDCup2009/Dropbox")
+setwd("~/Manjari/Northwestern/R/Workspace/Predict454/KDDCup2009/Dropbox")
 # choose a script to load and transform the data
 source('data_transformations/impute_0.r')
 # Converting data to matrix form
@@ -49,7 +49,7 @@ df_mat <- make_mat(df)
 #Data set containing predictors and upsell only
 train_upsell <- select(train, -appetency, -churn)
 
-
+table(train$upsell)
 #######################################################
 #    Random Forest Model
 #######################################################
@@ -120,12 +120,12 @@ upsell.varImplot <- varImpPlot(upsell_rf_top_25_cp3, type=1)
 
 ### EVALUATE ON TRAIN DATA:
 # Confustion Matrix:
-train$Pred.sub <- predict(upsell_rf_top_25_cp3, type="class", newdata=train)
-upsell.pred.rp.conf.matrix.train.sub <- confusionMatrix(train$Pred.sub,train$upsell)
+train$pred.upsell.rf.sub<- predict(upsell_rf_top_25_cp3, type="class", newdata=train)
+upsell.pred.rp.conf.matrix.train.sub <- confusionMatrix(train$pred.upsell.rf.sub,train$upsell)
 print(upsell.pred.rp.conf.matrix.train.sub)
 # AUC:
-rf.upsell.pred.train.prob.sub <- predict(upsell_rf_top_25_cp3,train,type = 'prob')[,2]
-rf.upsell.pred.train.prob.prediction.sub <- prediction(rf.upsell.pred.train.prob.sub, train$upsell)
+train$pred.upsell.rf.sub.prob <- predict(upsell_rf_top_25_cp3,train,type = 'prob')[,2]
+rf.upsell.pred.train.prob.prediction.sub <- prediction(train$pred.upsell.rf.sub.prob, train$upsell)
 #pred.train
 perfAUC.train.sub <- performance(rf.upsell.pred.train.prob.prediction.sub,'auc')
 #perfAUC.train
@@ -135,13 +135,13 @@ AUC.Train
 
 ### EVALUATE ON TEST DATA:
 # Confustion Matrix:
-test$Pred.sub <- predict(upsell_rf_top_25_cp3, type="class", newdata=test)
+test$pred.upsell.rf.sub <- predict(upsell_rf_top_25_cp3, type="class", newdata=test)
 
-upsell.pred.rp.conf.matrix.test.sub <- confusionMatrix(test$Pred.sub,test$upsell)
+upsell.pred.rp.conf.matrix.test.sub <- confusionMatrix(test$pred.upsell.rf.sub,test$upsell)
 print(upsell.pred.rp.conf.matrix.test.sub)
 # AUC:
-rf.upsell.pred.test.prob.sub <- predict(upsell_rf_top_25_cp3,test,type = 'prob')[,2]
-rf.upsell.pred.test.prob.prediction.sub <- prediction(rf.upsell.pred.test.prob.sub, test$upsell)
+test$pred.upsell.rf.sub.prob <- predict(upsell_rf_top_25_cp3,test,type = 'prob')[,2]
+rf.upsell.pred.test.prob.prediction.sub <- prediction(test$pred.upsell.rf.sub.prob, test$upsell)
 #pred.test
 perfAUC.test.sub <- performance(rf.upsell.pred.test.prob.prediction.sub,'auc')
 #perfAUC.test
@@ -225,10 +225,98 @@ abline(a=0,b=1,lwd=2,lty=2,col="gray")
 
 # save .RData model and predictions output
 
-save(list = c('upsell_rf_top_25_over_cp3', 'rf.upsell.pred.test.prob.sub.over'),
-     file = 'models/upsell/upsell_rf_top25_oversampling_cp3_manjari.RData')
+#save(list = c('upsell_rf_top_25_over_cp3', 'rf.upsell.pred.test.prob.sub.over'),
+#     file = 'models/upsell/upsell_rf_top25_oversampling_cp3_manjari.RData')
 
 
+
+#####Random Forest Model with sampling option of 50:50 ####################
+# over sample the positive instances of churn
+train_oversample <- rbind(train, train[train$upsell == 1,],
+                          train[train$upsell == 1,],
+                          train[train$upsell == 1,])
+
+train_oversample <- select(train_oversample, -churn, -appetency)
+str(train_oversample)
+#table(train$upsell)
+set.seed(512356)
+upsell.selVars <- names(sort(upsell.varImp[,1],decreasing=T))[1:25]
+print(upsell.selVars)
+
+# with selected vars only
+upsell_rf_equalsampling_cp3 <- randomForest(x=train_oversample[,upsell.selVars], y=factor(train_oversample$upsell) ,
+                                     strata = factor(train_oversample$upsell),
+                                     sampsize = c(1000, 1000),
+                                     ntree = 50, nodesize = 10, importance = TRUE)
+# with full model
+#upsell_rf_equalsampling_cp3 <- randomForest(factor(train_oversample$upsell) ~ . , data = train_oversample,
+#                                            strata = factor(train_oversample$upsell),
+#                                            sampsize = c(1000, 1000),
+#                                            ntree = 50, nodesize = 10, importance = TRUE)
+
+plot(upsell_rf_equalsampling_cp3)
+upsell.varImp.equalsampling <- importance(upsell_rf_equalsampling_cp3)
+upsell.varImp.equalsampling
+upsell.varImplot.equalsampling <- varImpPlot(upsell_rf_equalsampling_cp3, type=1)
+
+
+# make predictions
+
+### EVALUATE ON TRAIN DATA:
+# Confustion Matrix:
+train$pred.upsell.rf.equalsampling <- predict(upsell_rf_equalsampling_cp3, type="class", newdata=train)
+upsell.pred.rp.conf.matrix.train.equalsampling <- confusionMatrix(train$pred.upsell.rf.equalsampling,train$upsell)
+print(upsell.pred.rp.conf.matrix.train.equalsampling)
+# AUC:
+train$pred.upsell.rf.equalsampling.prob <- predict(upsell_rf_equalsampling_cp3,train,type = 'prob')[,2]
+rf.upsell.pred.train.prob.prediction.equalsampling <- prediction(train$pred.upsell.rf.equalsampling.prob, train$upsell)
+#pred.train
+perfAUC.train.equalsampling <- performance(rf.upsell.pred.train.prob.prediction.equalsampling,'auc')
+#perfAUC.train
+AUC.Train <- as.numeric(perfAUC.train.equalsampling@y.values)
+AUC.Train
+
+
+### EVALUATE ON TEST DATA:
+# Confustion Matrix:
+test$pred.upsell.rf.equalsampling <- predict(upsell_rf_equalsampling_cp3, type="class", newdata=test)
+
+upsell.pred.rp.conf.matrix.test.equalsampling <- confusionMatrix(test$pred.upsell.rf.equalsampling,test$upsell)
+print(upsell.pred.rp.conf.matrix.test.equalsampling)
+# AUC:
+test$pred.upsell.rf.equalsampling.prob <- predict(upsell_rf_equalsampling_cp3,test,type = 'prob')[,2]
+rf.upsell.pred.test.prob.prediction.equalsampling <- prediction(test$pred.upsell.rf.equalsampling.prob, test$upsell)
+#pred.test
+perfAUC.test.equalsampling <- performance(rf.upsell.pred.test.prob.prediction.equalsampling,'auc')
+#perfAUC.test
+AUC.Test.equalsampling <- as.numeric(perfAUC.test.equalsampling@y.values)
+AUC.Test.equalsampling
+
+#ROC curve
+#performance in terms of true and false positive rates
+d.rf.perf = performance(rf.upsell.pred.test.prob.prediction.sub,"tpr","fpr")
+
+#plot the curve
+plot(d.rf.perf,main="ROC Curve for Random Forest of top 25 model in test data",col=2,lwd=2)
+abline(a=0,b=1,lwd=2,lty=2,col="gray")
+
+rf.upsell.pred.test.equalsampling<- test$pred.upsell.rf.equalsampling
+
+# save .RData model and preidctions output
+
+#predictions output on ensemble data
+#rf.upsell.pred.ensemble.equalsampling <- predict(upsell_rf_equalsampling_cp3, type="class", newdata=ensemble_test)
+rf.upsell.pred.ensemble.equalsampling <- predict(upsell_rf_top_25_cp3,
+                                                 ensemble_test,
+                                                 type = 'prob')[,2]
+
+rf.upsell.pred.test.equalsampling <- predict(upsell_rf_top_25_cp3,
+                                                 test,
+                                                 type = 'prob')[,2]
+
+save(list = c('upsell_rf_top_25_cp3', 'rf.upsell.pred.test.equalsampling',
+              'rf.upsell.pred.ensemble.equalsampling'),
+     file = 'models/upsell/upsell_rf_top25_equalsampling_manjari.RData')
 
 #######################################################
 #    Support Vector Machine
@@ -251,8 +339,8 @@ svm.upsell.top25fit <- svm(factor(upsell)~ Var126+Var28+Var206+Var21+Var153+Var2
                            probability=TRUE, decision.values=TRUE)
 
 ### In Train
-svm.upsell.pred.train <- predict(svm.upsell.top25fit,train,probability=TRUE)
-confusionMatrix(svm.upsell.pred.train,train$upsell)
+train$pred.upsell.svm <- predict(svm.upsell.top25fit,train,probability=TRUE)
+confusionMatrix(train$pred.svm ,train$upsell)
 
 #AUC
 svm.upsell.fit.val <-predict(svm.upsell.top25fit,train,decision.values=TRUE)
@@ -319,10 +407,10 @@ abline(a=0,b=1,lwd=2,lty=2,col="gray")
 as.numeric(performance(ROCR , "auc")@y.values)
 str(train)
 
-upsell_train.predClass = rep(0,7500)
-upsell_train.predClass[upsell.predict.train>0.5] = 1
+train$pred.upsell.glm = rep(0,7500)
+train$pred.upsell.glm[upsell.predict.train>0.5] = 1
 
-table(upsell_train.predClass,train$upsell)
+table(train$pred.upsell.glm,train$upsell)
 # Accuracy =(6956+5)/(6956+5+3+536) = 0.9281
 
 #####In test
@@ -340,12 +428,35 @@ abline(a=0,b=1,lwd=2,lty=2,col="gray")
 as.numeric(performance(ROCR , "auc")@y.values)
 str(test)
 
-upsell_test.predClass = rep(0,7500)
-upsell_test.predClass[upsell.predict.test>0.5] = 1
+test$pred.upsell.glm = rep(0,7500)
+test$pred.upsell.glm[upsell.predict.test>0.5] = 1
 
-table(upsell_test.predClass,test$upsell)
+table(test$pred.upsell.glm,test$upsell)
 # Accuracy =(6963+1)/(6963+1+3+533) = 0.92853
 
 
 save(list = c('glm.upsell.top25.fit', 'upsell.predict.test'),
      file = 'models/upsell/upsell_glm_fit_cp3_top25_manjari.RData')
+
+########################################################
+# Ensemble model : using predictions from RF top 25 , logistic regression and SVM
+#############################################################
+#RF top 25
+#train$pred.upsell.rf.sub
+#test$pred.upsell.rf.sub
+
+set.seed(512356)
+
+upsell_ensemble_rf <- randomForest(factor(upsell) ~ pred.upsell.rf.sub
+                                   # + pred.upsell.svm
+                                   #+ pred.upsell.glm
+                                   + pred.upsell.rf.equalsampling
+                                   , data = train,
+                                   ntree = 50, nodesize = 10, importance = TRUE)
+
+upsell_ensemble_rf_predictions <- predict(upsell_ensemble_rf, test,
+                                          type = 'prob')[,2]
+
+pred <- prediction(upsell_ensemble_rf_predictions, test$upsell)
+perf <- performance(pred,'auc')
+perf@y.values
