@@ -1,4 +1,5 @@
 library(dplyr)
+library(ROCR)
 
 
 make_mat <- function(df_mat){
@@ -23,8 +24,6 @@ make_mat <- function(df_mat){
   return(data.matrix(df_mat))
 
 }
-
-
 
 
 multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
@@ -122,6 +121,7 @@ make_roc <- function(df, response_vec){
   return(do.call("rbind", df_list))
 }
 
+
 make_auc <- function(df, response_vec, in_house){
   # funciton to help me build AUC comparison tables
   auc_table = data.frame(In_House = c(in_house))
@@ -136,10 +136,10 @@ make_auc <- function(df, response_vec, in_house){
   return(auc_table)
 }
 
+
 vec_auc <- function(yhat, y){
   # calculate the AUC for a vector and truth vector
   pred <- prediction(yhat, y)
   perf <- performance(pred, measure = "auc")
   return(perf@y.values[[1]])
-
 }

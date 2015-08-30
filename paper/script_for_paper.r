@@ -112,9 +112,9 @@ upsell_df <- data.frame(upsell = ens_response$upsell
                         , random_forest2 = upsell_ens_rf_jay_predictions
                         , naive_bayes = upsell_ens_nb_sandra_predictions
                         , random_forest = rf.upsell.pred.ensemble.equalsampling
-                        , logistic_regression = upsell_ens_lreg_jay_predictions
+                        , logistic = upsell_ens_lreg_jay_predictions
                         , vote_ensemble = upsell_vote
-                        , logistic_regression_ensemble = up_logistic_ens)
+                        , logistic_ensemble = up_logistic_ens)
 
 
 upsell_df2 <- gather(upsell_df, upsell, 'prediction')
@@ -129,38 +129,63 @@ rm(list = c('upsell_lreg_jay_predictions',
 
 app_roc_df <- make_roc(app_df2, ens_response$appetency)
 # plot results
-ggplot(data = app_roc_df, aes(x = FPR, y = TPR, group = algorithm,
+a_roc <- ggplot(data = app_roc_df, aes(x = FPR, y = TPR, group = algorithm,
                               colour = algorithm)) +
-  geom_line(size = 1) +
-  scale_color_manual(values = my_colors) +
-  ggtitle('ROC Curves Appetency Models')
+                geom_line(size = 0.7) +
+                scale_color_manual(values = my_colors)
+                # ggtitle('ROC Curves Appetency Models')
 
 # ---- app AUC ----
-print(xtable(make_auc(app_df2, ens_response$appetency, 0.8522)))
+auc <- data.frame(make_auc(app_df2, ens_response$appetency, 0.8522))
+auc$in_sample <- c(NA # in house
+                   ,0.9939027 # rf2
+                   ,0.8321994 # lreg
+                   ,0.9618698 # nb
+                   ,0.823205 # lreg2
+                   ,NA # vote
+                   ,0.9909713) # stacked_rf
+print(xtable(auc, caption = 'Appetency Models AUC'))
 
 # ---- Churn ROC ----
 
 churn_roc_df <- make_roc(churn_df2, ens_response$churn)
 # plot results
-ggplot(data = churn_roc_df, aes(x = FPR, y = TPR, group = algorithm,
+c_roc <- ggplot(data = churn_roc_df, aes(x = FPR, y = TPR, group = algorithm,
                               colour = algorithm)) +
-  geom_line(size = 1) +
-  scale_color_manual(values = my_colors) +
-  ggtitle('ROC Curves Churn Models')
+                geom_line(size = 0.7) +
+                scale_color_manual(values = my_colors)
+                # ggtitle('ROC Curves Churn Models')
 
 # ---- churn AUC ----
-print(xtable(make_auc(churn_df2, ens_response$churn, 0.7435)))
+auc <- data.frame(make_auc(churn_df2, ens_response$churn, 0.7435))
+auc$in_sample <- c(NA # in house
+                   ,0.703 # lreg
+                   ,0.703 # lreg2
+                   ,0.9315 # nb
+                   ,0.99 # rf
+                   ,0.9939027 # rf2
+                   ,NA # vote
+                   )
+print(xtable(auc, caption = 'Churn Models AUC'))
 
 # ---- Upsell ROC ----
 
 upsell_roc_df <- make_roc(upsell_df2, ens_response$upsell)
 # plot results
-ggplot(data = upsell_roc_df, aes(x = FPR, y = TPR, group = algorithm,
+u_roc <- ggplot(data = upsell_roc_df, aes(x = FPR, y = TPR, group = algorithm,
                               colour = algorithm)) +
-  geom_line(size = 1) +
-  scale_color_manual(values = my_colors) +
-  ggtitle('ROC Curves Up-Sell Models')
-  # theme(legend.position="top")
+                  geom_line(size = 0.7) +
+                  scale_color_manual(values = my_colors)
+                  # ggtitle('ROC Curves Up-Sell Models')
+                  # theme(legend.position="top")
 
 # ---- upsell AUC ----
-print(xtable(make_auc(upsell_df2, ens_response$upsell, 0.8975)))
+auc <- data.frame(make_auc(upsell_df2, ens_response$upsell, 0.8975))
+auc$in_sample <- c(NA # in house
+                   ,0.99 # rf2
+                   ,0.9177 # nb
+                   ,0.99 # rf
+                   ,0.8376696 # lreg
+                   ,NA # vote
+                   ,0.8723573) # logistic
+print(xtable(auc, caption = 'Up-Sell Models AUC'))

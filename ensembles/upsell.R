@@ -69,7 +69,7 @@ upsell_train <- data.frame(
 lreg_combiner <- glm(factor(upsell) ~ ., data = upsell_train,
                      family = 'binomial')
 
-logistic_ensemble <- predict(lreg_combiner, upsell_df)
+up_logistic_ens <- predict(lreg_combiner, upsell_df)
 upsell_df$logistic_ensemble <- predict(lreg_combiner, upsell_df)
 
 upsell_df2 <- gather(upsell_df, upsell, 'prediction')
@@ -85,5 +85,5 @@ ggplot(data = upsell_roc_df, aes(x = FPR, y = TPR, group = algorithm,
 
 make_auc(upsell_df2, ens_response$upsell, 0.8975)
 
-save(list = c('upsell_vote', 'logistic_ensemble'),
+save(list = c('upsell_vote', 'up_logistic_ens'),
      file = 'ensembles/upsell.RData')
