@@ -627,7 +627,7 @@ The Random Forest classifier was also used for appetency. The basic Random Fores
 
 A Random Forest model using the top 50 variables was created with parameters set to number of trees = 50 and minimum bucket size =10. The sample size option was set to c(50,70) . This allowed the algorithm to randomly draw samples of size of 50 or 70 from two values of appetency = 0 and 1 to grow the tree. This helped to improve the accuracy of the model as compared to basic random forest models. However, the results on the test data set were still not very high. 
 
-The resulting Random forest model using the top 50 variables based on importance and sample size option 50 or 70 produced an overfit model with a very high AUC Score on the training set of 0.99997 an AUC Score with the Test data of only 0.6819. This value is only slightly better than random sampling and is also a very low AUC as compared to the in house AUC value of 0.85, so, this model was left out of the AUC and ROC curve results below.
+The resulting Random forest model using the top 50 variables based on importance and sample size option 50 or 70 produced an over-fit model with a very high AUC Score on the training set of 0.99997 an AUC Score with the Test data of only 0.6819. This value is only slightly better than random sampling and is also a very low AUC as compared to the in house AUC value of 0.85, so, this model was left out of the AUC and ROC curve results below.
 
 
 #### Random Forest 2
@@ -677,7 +677,7 @@ a_roc
 
 
 ###In-Sample vs Out-Sample
-Table 9 shows comparative AUC scores between the training (In-Sample) versus the test data set (Out-Sample).  For Naive Bayes and the Random Forest models the drop in AUC between the training and test data set are quite substantial, indicating overtraining on the training set. Drops for the remaining models between the training and test data were less dramatic.
+Table 9 shows comparative AUC scores between the training (In-Sample) versus the test data set (Out-Sample).  For Naive Bayes and the Random Forest models the drop in AUC between the training and test data set are quite substantial, indicating over training on the training set. Drops for the remaining models between the training and test data were less dramatic.
 
 ###Variable Comparison by Model for Appetency
 The appendix includes a comparative table of variables by model. For the Logistic Regression 2 and Random Forest 2 Model, all variables were utilized, with a Regularization process on the Logistic Model to remove the least impacting variables.  The table in the appendix only lists the variables that were shared with other models to see the commonality of variables (I.E. since the Logistic2 and RandomForest2 contain a large number of variables, only those variables shared with other models are presented in the table). Of particular note is that the logistic_regression model with only 3 variables performed within 1 point of even the ensemble models. Additionally, looking back at Table 7, and other variable selection methods, the Decision Tree identified all three variables as being important, and two were identified by the Elastic Net Penalty model and Random Forest identified one of those variables, Var126. For Appetency, variable selection efforts were able to surface the most important variables.
@@ -695,7 +695,7 @@ The Random Forest classifier was used to build a classification model for the Ch
 
 The initial model was refined using the top 50 variables based on importance from the first model. This model showed a higher accuracy percentage (92.69%), and the model was able to detect churned customers  better than the previous random forest model.
 
-The resulting Random forest model using the top 50 variables based on importance produced an overfit model with a very high AUC Score on the training set of 0.99548 and AUC Score with the Test data of only 0.688 and this AUC value is less than the in house best AUC value of 0.74.
+The resulting Random forest model using the top 50 variables based on importance produced an over fit model with a very high AUC Score on the training set of 0.99548 and AUC Score with the Test data of only 0.688 and this AUC value is less than the in house best AUC value of 0.74.
 
 #### Random Forest 2
 Because of the success of the second Random Forest attempt for detecting appetency, a similar technique was employed for detecting churn. All of the positive instances of churn were over sampled by a factor of four. This did increase the AUC for Random Forest, but only increased the AUC score from .69 to .72, this model is however outperforming the other models. 
@@ -732,7 +732,7 @@ c_roc
 ```
 
 ###In-Sample vs Out-Sample
-Table 10 shows comparative AUC scores between the training (In-Sample) versus the test data set (Out-Sample).  For Naive Bayes and the Random Forest models the drop in AUC between the training and test data set are quite substantial, indicating overtraining on the training set. Drops for the remaining models between the training and test data were less dramatic.
+Table 10 shows comparative AUC scores between the training (In-Sample) versus the test data set (Out-Sample).  For Naive Bayes and the Random Forest models the drop in AUC between the training and test data set are quite substantial, indicating over training on the training set. Drops for the remaining models between the training and test data were less dramatic.
 
 ###Variable Comparison by Model for Churn
 The appendix includes a comparative table of variables by model. For the Logistic Regression 2 and Random Forest 2 Model, all variables were utilized, with a Regularization process on the Logistic Model to remove the least impacting variables.  The table in the appendix only lists the variables that were shared with other models to see the commonality of variables.  As with Appetency, the Logistic model with a small number of variables, only 10, also performed very well, was the highest performing model with an AUC of .73, just 1 point below the In_House model.  The Variable selection method was less effective for Churn as it highlighted only three of the variables that were ultimately included in the logistic model, 113, 126, and 218.  There are quite a few shared variables between Naive Bayes and the RandomForest1 model and with the Logistic Model as well
@@ -749,11 +749,11 @@ The resulting Naive Bayes model using the selected variables shows over-fitting 
 
 
 ### Random Forest using top 25 variables with equal sampling
-The Random Forest classifier was also used for upsell. The basic Random Forest model with all the 230 variables and the imputed variables performed poorly on the test data set. This model was used to obtain the subset of top 25 variables based on importance, which also performed poorly, so an alternative approach was taken.
+The Random Forest classifier was also used for up-sell. The basic Random Forest model with all the 230 variables and the imputed variables performed poorly on the test data set. This model was used to obtain the subset of top 25 variables based on importance, which also performed poorly, so an alternative approach was taken.
 
-Due to the low number of positive observations for upsell, a balancing method was applied. Before fitting the Random Forest model, each observation showing a positive value for upsell in the training set was copied three times, so that there were four copies of each positive record. This oversampling of positive upsell cases was intended to make the Random Forest model predict 1 for upsell more often by changing the ratio of positive and negative cases in the data (as only 7.2% of the observations had a positive value for upsell in training data set). The oversampled data was then used to carry out equal sampling of upsell and non-upsell cases.
+Due to the low number of positive observations for up-sell, a balancing method was applied. Before fitting the Random Forest model, each observation showing a positive value for up-sell in the training set was copied three times, so that there were four copies of each positive record. This oversampling of positive up-sell cases was intended to make the Random Forest model predict 1 for up-sell more often by changing the ratio of positive and negative cases in the data (as only 7.2% of the observations had a positive value for up-sell in training data set). The over sampled data was then used to carry out equal sampling of up-sell and non-up-sell cases.
 
-This model showed higher accuracy on the test data set and the model was able to detect positive upsell scenarios better than the initial model with an AUC Score on the test data set of 0.8424.
+This model showed higher accuracy on the test data set and the model was able to detect positive up-sell scenarios better than the initial model with an AUC Score on the test data set of 0.8424.
 
 ### Logistic Regression
 A logistic regression model was fitted for with a LASSO shrinkage parameter. Several attempts at feature engineering were made, three interaction variables were added based on the results of the decision tree discussed in the EDA portion (variable 126 and 28, variable 28 and 153 and variable 125 and 81). Also a squared version of every numeric variable was added to the data. This created a very large data set and the model had to be trained over a period of several hours. The results showed an improvement over some other algorithms, but overall results failed to match other models and further work was halted.  
@@ -764,7 +764,7 @@ The K Nearest Neighbor technique was applied in a computational EDA manner to ob
 The resulting knn model used the selected variables and k = 200, shows over fitting as the AUC Score with the training data is 0.9878 but the AUC Score with the test data is 0.7021. The AUC for the testing data is significantly above 0.50 of a random guess, but the results lag other models.
 
 ### Vote Ensemble
-Several Ensemble methods were also created for Upsell, the first of which was a Vote Ensemble model. Predictions from three of the models were scaled and averaged using both of the Random Forest models and the Logistic Regression Model. Naïve Bayes and KNN were left out of the ensemble because of their lower AUC values.  This resulted in an AUC score of .88, which is higher than any of the individual models.
+Several Ensemble methods were also created for up-sell, the first of which was a Vote Ensemble model. Predictions from three of the models were scaled and averaged using both of the Random Forest models and the Logistic Regression Model. Naïve Bayes and KNN were left out of the ensemble because of their lower AUC values.  This resulted in an AUC score of .88, which is higher than any of the individual models.
 
 ### Logistic Regresssion Ensemble
 In addition to a vote ensemble, all of the models except KNN were used to train a logistic regression model that used model outputs as its input variables. The individual model results were obtained from a testing set, then those predictions were used to train the logistic regression ensemble. The ensemble model performance was evaluated on an additional testing data set that was not used to train it or the original models. This method turned produced the highest AUC score of .89, coming in 1 point below the In house model. 
@@ -781,7 +781,7 @@ u_roc
 ```
 
 ###In-Sample vs Out-Sample
-Table 11 shows comparative AUC scores between the training (In-Sample) versus the test data set (Out-Sample).  For Naive Bayes and the Random Forest models the drop in AUC between the training and test data set are quite substantial, indicating overtraining on the training set. Drops for the remaining models between the training and test data were less dramatic.
+Table 11 shows comparative AUC scores between the training (In-Sample) versus the test data set (Out-Sample).  For Naive Bayes and the Random Forest models the drop in AUC between the training and test data set are quite substantial, indicating over training on the training set. Drops for the remaining models between the training and test data were less dramatic.
 
 
 ###Variable Comparison by Model for Upsell
@@ -789,20 +789,20 @@ The appendix includes a comparative table of variables by model. For the Logisti
 
 # Comparison of Results
 
-The overall results of this modeling exercise were quite high with the Ensemble Model for Churn matching the In_House model, several models for Appetency falling within 3 points of the In House model and the Ensemble model for Upsell getting to within 1 point of the In House model, while also proving an AUC score nearing .90.  
+The overall results of this modeling exercise were quite high with the Ensemble Model for Churn matching the In_House model, several models for Appetency falling within 3 points of the In House model and the Ensemble model for up-sell getting to within 1 point of the In House model, while also proving an AUC score nearing .90.  
 
 ```{r score table, echo = FALSE, results = 'asis'}
 ```
 
 
 # Conclusions
-This analysis set out to match or exceed the In-House Results of Orange, a telecom company in France. Overall, the team was able to match the In-house results of a 0.74 AUC score for Churn and produce a model just 1 point below the In-house model for Upsell.  The models for Appetency performed the worse but was still within 3 points of the In-house model. The assignment was to use the small data set of only 230 variables, the actualy data set consited of 15,000 variables, this gives a large advantage to the Orange in-house team and other compeitors. Also given that there were a large number of missing values with anonymized data, the In-house team likely had more insight into what the variables represented and therefore could engage more thoughtful data replacement approaches.
+This analysis set out to match or exceed the In-House Results of Orange, a telecom company in France. Overall, the team was able to match the In-house results of a 0.74 AUC score for Churn and produce a model just 1 point below the In-house model for up-sell.  The models for Appetency performed the worse but was still within 3 points of the In-house model. The assignment was to use the small data set of only 230 variables, the actually data set consisted of 15,000 variables, this gives a large advantage to the Orange in-house team and other competitors. Also given that there were a large number of missing values with anonymized data, the In-house team likely had more insight into what the variables represented and therefore could engage more thoughtful data replacement approaches.
 
 The model chosen for Churn is the vote_ensemble model with the best AUC value of 0.74
 
-The model chosen for Appetency is the stacked_rf ensemble modelw with the best AUC value of 0.82.
+The model chosen for Appetency is the stacked_rf ensemble model with the best AUC value of 0.82.
 
-The model chosen for Upsell is logistic_ensemble with the best AUC value of 0.89.
+The model chosen for up sell is logistic_ensemble with the best AUC value of 0.89.
 
 Averaging those three results together gives a final score of 0.8167.
 

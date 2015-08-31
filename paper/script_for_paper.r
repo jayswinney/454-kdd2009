@@ -60,7 +60,7 @@ app_df <- data.frame(
   random_forest2 = app_ens_rf_jay_pred,
   logistic_regression = app_ens_lreg_udy_pred,
   naive_bayes = app_ens_nb_sandra_pred,
-  # app_rf_manjari_pred = app_ens_rf_manjari_pred,
+  # random_forest = app_ens_rf_manjari_pred,
   logistic_regression2 = app_ens_lreg_jay_predictions,
   vote_ensemble = app_vote,
   stacked_rf = rf_stack_pred
@@ -136,15 +136,17 @@ a_roc <- ggplot(data = app_roc_df, aes(x = FPR, y = TPR, group = algorithm,
                 # ggtitle('ROC Curves Appetency Models')
 
 # ---- app AUC ----
-auc <- data.frame(make_auc(app_df2, ens_response$appetency, 0.8522))
-auc$in_sample <- c(NA # in house
+auc_appetency <- data.frame(make_auc(app_df2, ens_response$appetency, 0.8522))
+auc_appetency$in_sample <- c(NA # in house
                    ,0.9939027 # rf2
                    ,0.8321994 # lreg
                    ,0.9618698 # nb
+                  #  , 0.99 # rf
                    ,0.823205 # lreg2
                    ,NA # vote
                    ,0.9909713) # stacked_rf
-print(xtable(auc, caption = 'Appetency Models AUC'))
+names(auc_appetency) <- c('out_of_sample_auc','in_sample_auc')
+print(xtable(auc_appetency, caption = 'Appetency Models AUC'))
 
 # ---- Churn ROC ----
 
@@ -157,16 +159,17 @@ c_roc <- ggplot(data = churn_roc_df, aes(x = FPR, y = TPR, group = algorithm,
                 # ggtitle('ROC Curves Churn Models')
 
 # ---- churn AUC ----
-auc <- data.frame(make_auc(churn_df2, ens_response$churn, 0.7435))
-auc$in_sample <- c(NA # in house
+auc_churn <- data.frame(make_auc(churn_df2, ens_response$churn, 0.7435))
+auc_churn$in_sample <- c(NA # in house
                    ,0.703 # lreg
                    ,0.703 # lreg2
                    ,0.9315 # nb
                    ,0.99 # rf
                    ,0.9939027 # rf2
-                   ,NA # vote
+                   ,(0.703 + 0.703 + 0.99 + 0.9939027)/4 # vote
                    )
-print(xtable(auc, caption = 'Churn Models AUC'))
+names(auc_churn) <- c('out_of_sample_auc','in_sample_auc')
+print(xtable(auc_churn, caption = 'Churn Models AUC'))
 
 # ---- Upsell ROC ----
 
@@ -180,12 +183,24 @@ u_roc <- ggplot(data = upsell_roc_df, aes(x = FPR, y = TPR, group = algorithm,
                   # theme(legend.position="top")
 
 # ---- upsell AUC ----
-auc <- data.frame(make_auc(upsell_df2, ens_response$upsell, 0.8975))
-auc$in_sample <- c(NA # in house
+auc_upsell <- data.frame(make_auc(upsell_df2, ens_response$upsell, 0.8975))
+auc_upsell$in_sample <- c(NA # in house
                    ,0.99 # rf2
                    ,0.9177 # nb
                    ,0.99 # rf
                    ,0.8376696 # lreg
                    ,NA # vote
                    ,0.8723573) # logistic
-print(xtable(auc, caption = 'Up-Sell Models AUC'))
+names(auc_upsell) <- c('out_of_sample_auc','in_sample_auc')
+print(xtable(auc_upsell, caption = 'Up-Sell Models AUC'))
+
+# ---- score table ----
+score_table <- rbind(auc_appetency['stacked_rf',],
+                     auc_churn['vote_ensemble',],
+                     auc_upsell['logistic_ensemble',])
+
+rownames(score_table) <- c('Appetency:stacked_rf'
+                           , 'Churn:vote_ensemble'
+                           , 'Up-Sell:logistic_ensemble')
+
+print(xtable(score_table, caption = 'Final Models'))
